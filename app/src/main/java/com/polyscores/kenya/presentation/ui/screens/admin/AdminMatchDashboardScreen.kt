@@ -126,13 +126,25 @@ fun AdminMatchDashboardScreen(
                     onSaveLineups = onUpdateLineups,
                     modifier = Modifier.fillMaxWidth().weight(1f)
                 )
-            } else if (match.matchStatus == MatchStatus.LIVE || match.matchStatus == MatchStatus.HALFTIME || match.matchStatus == MatchStatus.SECOND_HALF) {
+            } else if (match.matchStatus == MatchStatus.LIVE || match.matchStatus == MatchStatus.SECOND_HALF || match.matchStatus == MatchStatus.EXTRA_TIME) {
                 MatchEventBuilder(
                     match = match,
                     homePlayers = homePlayers,
                     awayPlayers = awayPlayers,
                     onSaveEvent = onAddEvent
                 )
+            } else if (match.matchStatus == MatchStatus.HALFTIME) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Match is currently in Half Time.\nEvents cannot be recorded.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
             } else if (match.matchStatus == MatchStatus.FULLTIME) {
                 MatchAnalyticsEditor(
                     match = match,
