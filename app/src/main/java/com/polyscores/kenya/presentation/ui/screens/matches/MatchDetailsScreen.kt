@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.polyscores.kenya.data.model.Match
+import com.polyscores.kenya.data.model.MatchStatus
 import com.polyscores.kenya.data.model.MatchEvent
 import com.polyscores.kenya.data.model.Player
 import com.polyscores.kenya.presentation.ui.components.PolyScoresTopBar
@@ -94,11 +95,31 @@ fun MatchDetailsScreen(
                     Text(match.homeTeamName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "${match.homeScore} - ${match.awayScore}",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold
-                        )
+                        val now = System.currentTimeMillis()
+                        val isTentative = match.matchStatus == MatchStatus.LIVE && (now - match.lastUpdated.toDate().time) < 180000
+                        val homeScoreColor = if (isTentative && match.lastScoringTeamId == match.homeTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+                        val awayScoreColor = if (isTentative && match.lastScoringTeamId == match.awayTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = match.homeScore.toString(),
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = homeScoreColor
+                            )
+                            Text(
+                                text = " - ",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = match.awayScore.toString(),
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = awayScoreColor
+                            )
+                        }
                         Text(
                             text = match.matchStatus.name,
                             style = MaterialTheme.typography.labelMedium

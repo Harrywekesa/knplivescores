@@ -111,7 +111,10 @@ fun MatchCard(
                             homeScore = match.homeScore,
                             awayScore = match.awayScore,
                             lastUpdated = match.lastUpdated,
-                            status = match.matchStatus
+                            status = match.matchStatus,
+                            lastScoringTeamId = match.lastScoringTeamId,
+                            homeTeamId = match.homeTeamId,
+                            awayTeamId = match.awayTeamId
                         )
                     }
 
@@ -176,12 +179,16 @@ private fun ScoreDisplay(
     homeScore: Int,
     awayScore: Int,
     lastUpdated: com.google.firebase.Timestamp,
-    status: MatchStatus
+    status: MatchStatus,
+    lastScoringTeamId: String?,
+    homeTeamId: String,
+    awayTeamId: String
 ) {
     // If LIVE and updated within the last 3 minutes (180000 ms), it's tentative
     val now = System.currentTimeMillis()
     val isTentative = status == MatchStatus.LIVE && (now - lastUpdated.toDate().time) < 180000
-    val scoreColor = if (isTentative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    val homeScoreColor = if (isTentative && lastScoringTeamId == homeTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    val awayScoreColor = if (isTentative && lastScoringTeamId == awayTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
 
     Row(
         verticalAlignment = Alignment.CenterVertically
@@ -190,18 +197,18 @@ private fun ScoreDisplay(
             text = homeScore.toString(),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = scoreColor
+            color = homeScoreColor
         )
         Text(
             text = " - ",
             style = MaterialTheme.typography.headlineMedium,
-            color = scoreColor
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = awayScore.toString(),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = scoreColor
+            color = awayScoreColor
         )
     }
 }

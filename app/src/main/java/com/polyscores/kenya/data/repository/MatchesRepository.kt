@@ -139,16 +139,19 @@ class MatchesRepository {
     /**
      * Update match score
      */
-    suspend fun updateMatchScore(matchId: String, homeScore: Int, awayScore: Int): Result<Unit> {
+    suspend fun updateMatchScore(matchId: String, homeScore: Int, awayScore: Int, lastScoringTeamId: String? = null): Result<Unit> {
         return try {
+            val updateMap = mutableMapOf<String, Any>(
+                "homeScore" to homeScore,
+                "awayScore" to awayScore,
+                "lastUpdated" to Timestamp.now()
+            )
+            if (lastScoringTeamId != null) {
+                updateMap["lastScoringTeamId"] = lastScoringTeamId
+            }
+
             matchesCollection.document(matchId)
-                .update(
-                    mapOf(
-                        "homeScore" to homeScore,
-                        "awayScore" to awayScore,
-                        "lastUpdated" to Timestamp.now()
-                    )
-                )
+                .update(updateMap)
                 .await()
             Result.success(Unit)
         } catch (e: Exception) {

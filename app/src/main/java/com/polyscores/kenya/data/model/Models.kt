@@ -110,7 +110,8 @@ data class Match(
     val awayStartingXI: List<String> = emptyList(),
     val awayBench: List<String> = emptyList(),
     val lastUpdated: Timestamp = Timestamp.now(),
-    val refereeName: String = ""
+    val refereeName: String = "",
+    val lastScoringTeamId: String? = null
 )
 
 enum class MatchStatus {

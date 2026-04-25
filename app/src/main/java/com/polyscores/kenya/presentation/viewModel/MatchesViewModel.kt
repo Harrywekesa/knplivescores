@@ -159,7 +159,7 @@ class MatchesViewModel(
                     val isHomeTeam = event.teamId == currentMatch.homeTeamId
                     val newHomeScore = if (isHomeTeam) currentMatch.homeScore + 1 else currentMatch.homeScore
                     val newAwayScore = if (!isHomeTeam) currentMatch.awayScore + 1 else currentMatch.awayScore
-                    matchesRepository.updateMatchScore(currentMatch.id, newHomeScore, newAwayScore)
+                    matchesRepository.updateMatchScore(currentMatch.id, newHomeScore, newAwayScore, event.teamId)
                 }
 
                 val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value

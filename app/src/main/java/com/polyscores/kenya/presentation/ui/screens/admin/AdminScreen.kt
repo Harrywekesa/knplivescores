@@ -265,19 +265,32 @@ private fun AdminMatchCard(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val now = System.currentTimeMillis()
                     val isTentative = match.matchStatus == MatchStatus.LIVE && (now - match.lastUpdated.toDate().time) < 180000
-                    val scoreColor = if (isTentative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+                    val homeScoreColor = if (isTentative && match.lastScoringTeamId == match.homeTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+                    val awayScoreColor = if (isTentative && match.lastScoringTeamId == match.awayTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
 
-                    Text(
-                        text = "${match.homeScore} - ${match.awayScore}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = scoreColor
-                    )
+                    Row {
+                        Text(
+                            text = match.homeScore.toString(),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = homeScoreColor
+                        )
+                        Text(
+                            text = " - ",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = match.awayScore.toString(),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = awayScoreColor
+                        )
+                    }
                     if (match.matchStatus == MatchStatus.LIVE || match.matchStatus == MatchStatus.HALFTIME || match.matchStatus == MatchStatus.SECOND_HALF) {
                         com.polyscores.kenya.presentation.ui.components.LiveMatchTimer(match = match)
                     } else {
