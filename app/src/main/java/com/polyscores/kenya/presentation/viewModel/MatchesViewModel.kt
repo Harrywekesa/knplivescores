@@ -155,11 +155,21 @@ class MatchesViewModel(
             val currentMatch = matches.value.find { it.id == event.matchId }
             if (currentMatch != null) {
                 // Auto-increment score
-                if (event.eventType == MatchEventType.GOAL || event.eventType == MatchEventType.PENALTY_GOAL) {
+                if (event.eventType == MatchEventType.GOAL || event.eventType == MatchEventType.PENALTY_GOAL || event.eventType == MatchEventType.OWN_GOAL) {
                     val isHomeTeam = event.teamId == currentMatch.homeTeamId
-                    val newHomeScore = if (isHomeTeam) currentMatch.homeScore + 1 else currentMatch.homeScore
-                    val newAwayScore = if (!isHomeTeam) currentMatch.awayScore + 1 else currentMatch.awayScore
-                    matchesRepository.updateMatchScore(currentMatch.id, newHomeScore, newAwayScore, event.teamId)
+                    val isOwnGoal = event.eventType == MatchEventType.OWN_GOAL
+                    
+                    // If it's an own goal by the home team, the away team gets the point, and vice-versa
+                    val scoreForHome = if (isOwnGoal) !isHomeTeam else isHomeTeam
+                    val scoreForAway = if (isOwnGoal) isHomeTeam else !isHomeTeam
+
+                    val newHomeScore = if (scoreForHome) currentMatch.homeScore + 1 else currentMatch.homeScore
+                    val newAwayScore = if (scoreForAway) currentMatch.awayScore + 1 else currentMatch.awayScore
+                    
+                    // The team that effectively "scored" the goal (for coloring purposes) is the one that got the point
+                    val scoringTeamId = if (scoreForHome) currentMatch.homeTeamId else currentMatch.awayTeamId
+                    
+                    matchesRepository.updateMatchScore(currentMatch.id, newHomeScore, newAwayScore, scoringTeamId)
                 }
 
                 val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value

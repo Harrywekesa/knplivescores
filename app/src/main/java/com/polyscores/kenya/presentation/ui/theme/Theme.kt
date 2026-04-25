@@ -17,63 +17,64 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 // ==================== COLOR PALETTE ====================
-// Inspired by Kenyan flag colors and sports themes
+// Kitale National Polytechnic Brand Colors
 
-val KenyaGreen = Color(0xFF009900)
-val KenyaRed = Color(0xFF990000)
-val KenyaBlack = Color(0xFF000000)
-val KenyaWhite = Color(0xFFFFFFFF)
+val KitaleMaroon = Color(0xFF7B241C)
+val KitaleMaroonDark = Color(0xFF511812)
+val KitaleGold = Color(0xFFF1C40F)
+val KitaleBlack = Color(0xFF1E1E1E)
+val KitaleWhite = Color(0xFFFFFFFF)
 
-val Primary = KenyaGreen
-val PrimaryVariant = Color(0xFF007700)
-val Secondary = KenyaRed
-val SecondaryVariant = Color(0xFF770000)
+val Primary = KitaleMaroon
+val PrimaryVariant = KitaleMaroonDark
+val Secondary = KitaleGold
+val SecondaryVariant = Color(0xFFD4AC0D)
 
-val Success = Color(0xFF4CAF50)
-val Error = Color(0xFFF44336)
-val Warning = Color(0xFFFF9800)
-val Info = Color(0xFF2196F3)
+val Success = Color(0xFF2ECC71)
+val Error = Color(0xFFE74C3C)
+val Warning = Color(0xFFF39C12)
+val Info = Color(0xFF3498DB)
 
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
-    onPrimary = KenyaWhite,
+    onPrimary = KitaleWhite,
     primaryContainer = PrimaryVariant,
-    onPrimaryContainer = KenyaWhite,
+    onPrimaryContainer = KitaleWhite,
     secondary = Secondary,
-    onSecondary = KenyaWhite,
+    onSecondary = KitaleWhite,
     secondaryContainer = SecondaryVariant,
-    onSecondaryContainer = KenyaWhite,
+    onSecondaryContainer = KitaleWhite,
     tertiary = Color(0xFFFFD700),
-    onTertiary = KenyaBlack,
+    onTertiary = KitaleBlack,
     background = Color(0xFF121212),
-    onBackground = KenyaWhite,
+    onBackground = KitaleWhite,
     surface = Color(0xFF1E1E1E),
-    onSurface = KenyaWhite,
+    onSurface = KitaleWhite,
     surfaceVariant = Color(0xFF2C2C2C),
     onSurfaceVariant = Color(0xFFE0E0E0),
     error = Error,
-    onError = KenyaWhite
+    onError = KitaleWhite
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
-    onPrimary = KenyaWhite,
-    primaryContainer = Color(0xFFCCFFCC),
-    onPrimaryContainer = Color(0xFF003300),
+    onPrimary = KitaleWhite,
+    primaryContainer = Color(0xFFF9EBEA),
+    onPrimaryContainer = Color(0xFF511812),
     secondary = Secondary,
-    onSecondary = KenyaWhite,
-    secondaryContainer = Color(0xFFFFD6D6),
-    onSecondaryContainer = Color(0xFF330000),
+    onSecondary = KitaleBlack,
+    secondaryContainer = Color(0xFFFCF3CF),
+    onSecondaryContainer = Color(0xFF7D6608),
     tertiary = Color(0xFFFFD700),
-    onTertiary = KenyaBlack,
+    onTertiary = KitaleBlack,
     background = Color(0xFFFFFBFF),
-    onBackground = KenyaBlack,
-    surface = KenyaWhite,
-    onSurface = KenyaBlack,
+    onBackground = KitaleBlack,
+    surface = KitaleWhite,
+    onSurface = KitaleBlack,
     surfaceVariant = Color(0xFFF0F0F0),
     onSurfaceVariant = Color(0xFF424242),
     error = Error,
-    onError = KenyaWhite
+    onError = KitaleWhite
 )
 
 @Composable
