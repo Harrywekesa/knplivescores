@@ -89,7 +89,19 @@ fun PolyScoresApp() {
     var showManageLeaguesDialog by remember { mutableStateOf(false) }
     var selectedMatch by remember { mutableStateOf<com.polyscores.kenya.data.model.Match?>(null) }
     
+    val updateManager = remember { com.polyscores.kenya.data.remote.UpdateManager(context) }
+    var updateInfo by remember { mutableStateOf<com.polyscores.kenya.data.remote.AppUpdateInfo?>(null) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        val info = updateManager.checkForUpdates()
+        if (info != null && info.isUpdateAvailable) {
+            updateInfo = info
+            showUpdateDialog = true
+        }
+    }
 
     LaunchedEffect(Unit) {
         matchesViewModel.latestGoalEvent.collect { (match, homeScored) ->
@@ -608,7 +620,15 @@ fun PolyScoresApp() {
         )
     }
 
-
+    if (showUpdateDialog && updateInfo != null) {
+        com.polyscores.kenya.presentation.ui.components.UpdateDialog(
+            updateInfo = updateInfo!!,
+            onDismiss = { showUpdateDialog = false },
+            onUpdateClick = {
+                updateManager.downloadUpdate(updateInfo!!.downloadUrl, updateInfo!!.latestVersionName)
+            }
+        )
+    }
 }
 
 @Composable
@@ -721,6 +741,7 @@ fun PolyScoresBottomBar(
             )
         }
     }
+
 }
 
 data class BottomNavItem(
