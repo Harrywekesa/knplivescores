@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "550819282177",
+    "project_id": "polyscores-fbcdf",
+    "storage_bucket": "polyscores-fbcdf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:550819282177:android:1bb83390067c2f99426f00",
+        "android_client_info": {
+          "package_name": "com.polyscores.kenya"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDArT8ZSTg6MlhK9xfy6jjzjU9iNnxbs0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
