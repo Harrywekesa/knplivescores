@@ -669,11 +669,12 @@ fun AddMatchDialog(
 @Composable
 fun ManageTeamsDialog(
     onDismiss: () -> Unit,
-    onCreateTeam: (String, String, String) -> Unit
+    onCreateTeam: (String, String, String, String) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var department by remember { mutableStateOf("") }
     var coach by remember { mutableStateOf("") }
+    var formation by remember { mutableStateOf("4-3-3") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -701,13 +702,19 @@ fun ManageTeamsDialog(
                     label = { Text("Coach") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                OutlinedTextField(
+                    value = formation,
+                    onValueChange = { formation = it },
+                    label = { Text("Formation (e.g. 4-3-3)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onCreateTeam(name, department, coach)
+                        onCreateTeam(name, department, coach, formation)
                     }
                 }
             ) {
@@ -791,20 +798,26 @@ fun ManageLeaguesDialog(
                     label = { Text("Season") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = startDateString,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Start Date") },
-                    modifier = Modifier.fillMaxWidth().clickable { startDatePickerDialog.show() }
-                )
-                OutlinedTextField(
-                    value = endDateString,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("End Date") },
-                    modifier = Modifier.fillMaxWidth().clickable { endDatePickerDialog.show() }
-                )
+                Box {
+                    OutlinedTextField(
+                        value = startDateString,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Start Date") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(modifier = Modifier.matchParentSize().clickable { startDatePickerDialog.show() })
+                }
+                Box {
+                    OutlinedTextField(
+                        value = endDateString,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("End Date") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(modifier = Modifier.matchParentSize().clickable { endDatePickerDialog.show() })
+                }
                 OutlinedTextField(
                     value = about,
                     onValueChange = { about = it },

@@ -12,6 +12,8 @@ import com.polyscores.kenya.data.model.MatchStatus
 import com.polyscores.kenya.data.model.Player
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import com.polyscores.kenya.presentation.ui.components.PolyScoresTopBar
 import androidx.compose.foundation.lazy.items
 
@@ -28,6 +30,7 @@ fun AdminMatchDashboardScreen(
     onUpdateLineups: (List<String>, List<String>, List<String>, List<String>) -> Unit,
     onDeleteMatch: () -> Unit,
     onAddEvent: (MatchEventType, String, String, String, Int, Boolean) -> Unit,
+    onUpdateAnalytics: (Int, Int, Int, Int, Int, Int, Int, Int) -> Unit,
     onBackClick: () -> Unit
 ) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -129,6 +132,11 @@ fun AdminMatchDashboardScreen(
                     homePlayers = homePlayers,
                     awayPlayers = awayPlayers,
                     onSaveEvent = onAddEvent
+                )
+            } else if (match.matchStatus == MatchStatus.FULLTIME) {
+                MatchAnalyticsEditor(
+                    match = match,
+                    onSaveAnalytics = onUpdateAnalytics
                 )
             }
         }
@@ -379,5 +387,70 @@ fun MatchEventBuilder(
                 Text("Save Event")
             }
         }
+    }
+}
+
+@Composable
+fun MatchAnalyticsEditor(
+    match: Match,
+    onSaveAnalytics: (Int, Int, Int, Int, Int, Int, Int, Int) -> Unit
+) {
+    var homePoss by remember { mutableStateOf(match.homePossession) }
+    var awayPoss by remember { mutableStateOf(match.awayPossession) }
+    var homeShotsOnTarget by remember { mutableStateOf(match.homeShotsOnTarget) }
+    var awayShotsOnTarget by remember { mutableStateOf(match.awayShotsOnTarget) }
+    var homeCorners by remember { mutableStateOf(match.homeCorners) }
+    var awayCorners by remember { mutableStateOf(match.awayCorners) }
+    var homeFouls by remember { mutableStateOf(match.homeFouls) }
+    var awayFouls by remember { mutableStateOf(match.awayFouls) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Match Analytics (Full Time)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 16.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(match.homeTeamName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text("Stat", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                Text(match.awayTeamName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            AnalyticsRow("Possession %", homePoss, awayPoss, { homePoss = it; awayPoss = 100 - it }, { awayPoss = it; homePoss = 100 - it })
+            AnalyticsRow("Shots on Target", homeShotsOnTarget, awayShotsOnTarget, { homeShotsOnTarget = it }, { awayShotsOnTarget = it })
+            AnalyticsRow("Corners", homeCorners, awayCorners, { homeCorners = it }, { awayCorners = it })
+            AnalyticsRow("Fouls", homeFouls, awayFouls, { homeFouls = it }, { awayFouls = it })
+
+            Button(
+                onClick = { onSaveAnalytics(homePoss, awayPoss, homeShotsOnTarget, awayShotsOnTarget, homeCorners, awayCorners, homeFouls, awayFouls) },
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+            ) {
+                Text("Save Analytics")
+            }
+        }
+    }
+}
+
+@Composable
+fun AnalyticsRow(label: String, homeVal: Int, awayVal: Int, onHomeChange: (Int) -> Unit, onAwayChange: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedTextField(
+            value = homeVal.toString(),
+            onValueChange = { it.toIntOrNull()?.let { v -> onHomeChange(v) } },
+            modifier = Modifier.weight(1f),
+            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+        )
+        Text(label, modifier = Modifier.weight(1f).padding(horizontal = 4.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(
+            value = awayVal.toString(),
+            onValueChange = { it.toIntOrNull()?.let { v -> onAwayChange(v) } },
+            modifier = Modifier.weight(1f),
+            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+        )
     }
 }

@@ -17,14 +17,14 @@ class StandingsViewModel(application: Application) : AndroidViewModel(applicatio
     private val _standings = MutableStateFlow<List<StandingsEntry>>(emptyList())
     val standings: StateFlow<List<StandingsEntry>> = _standings.asStateFlow()
 
-    fun loadStandings(leagueId: String, matches: List<com.polyscores.kenya.data.model.Match>) {
+    fun loadStandings(leagueId: String, matches: List<com.polyscores.kenya.data.model.Match>, teams: List<com.polyscores.kenya.data.model.Team>) {
         viewModelScope.launch {
             val currentStandings = standingsRepository.getStandings(leagueId)
             if (currentStandings.isNotEmpty()) {
                 _standings.value = currentStandings
             } else {
                 // Auto-calculate on the fly for the public view
-                val rawStandings = standingsRepository.calculateStandings(leagueId, matches)
+                val rawStandings = standingsRepository.calculateStandings(leagueId, matches, teams)
                 val sortedRawStandings = rawStandings.sortedWith(compareByDescending<StandingsEntry> { it.points }
                     .thenByDescending { it.goalDifference }
                     .thenByDescending { it.goalsFor })
@@ -49,8 +49,8 @@ class StandingsViewModel(application: Application) : AndroidViewModel(applicatio
     }
     fun autoCalculateStandings(leagueId: String, matches: List<com.polyscores.kenya.data.model.Match>, teams: List<com.polyscores.kenya.data.model.Team>, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            // First calculate raw from matches
-            val rawStandings = standingsRepository.calculateStandings(leagueId, matches)
+            // First calculate raw from matches and league teams
+            val rawStandings = standingsRepository.calculateStandings(leagueId, matches, teams)
             
             // Map the team details (name and logo) properly since calculateStandings might not have them
             val detailedStandings = rawStandings.map { entry ->

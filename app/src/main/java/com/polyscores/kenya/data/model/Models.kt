@@ -21,7 +21,8 @@ data class Team(
     val coachName: String = "",
     val contactPhone: String = "",
     val createdAt: Timestamp = Timestamp.now(),
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val formation: String = "4-3-3"
 )
 
 /**

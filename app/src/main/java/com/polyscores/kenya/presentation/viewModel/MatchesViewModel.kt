@@ -130,6 +130,25 @@ class MatchesViewModel(
         }
     }
 
+    fun updateMatchAnalytics(matchId: String, homePoss: Int, awayPoss: Int, homeShotsOnTarget: Int, awayShotsOnTarget: Int, homeCorners: Int, awayCorners: Int, homeFouls: Int, awayFouls: Int) {
+        viewModelScope.launch {
+            val db = com.polyscores.kenya.data.remote.FirestoreInstance.db
+            db.collection(com.polyscores.kenya.data.remote.FirestoreInstance.COLLECTION_MATCHES)
+                .document(matchId)
+                .update(
+                    "homePossession", homePoss,
+                    "awayPossession", awayPoss,
+                    "homeShotsOnTarget", homeShotsOnTarget,
+                    "awayShotsOnTarget", awayShotsOnTarget,
+                    "homeCorners", homeCorners,
+                    "awayCorners", awayCorners,
+                    "homeFouls", homeFouls,
+                    "awayFouls", awayFouls,
+                    "lastUpdated", com.google.firebase.Timestamp.now()
+                )
+        }
+    }
+
     fun addMatchEvent(event: MatchEvent) {
         viewModelScope.launch {
             matchesRepository.addMatchEvent(event)

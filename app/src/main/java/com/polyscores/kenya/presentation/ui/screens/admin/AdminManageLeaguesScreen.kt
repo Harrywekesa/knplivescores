@@ -13,17 +13,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.polyscores.kenya.data.model.League
+import com.polyscores.kenya.data.model.Team
 import com.polyscores.kenya.presentation.ui.components.PolyScoresTopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminManageLeaguesScreen(
     leagues: List<League>,
+    teams: List<Team>,
     onAddLeagueClick: () -> Unit,
     onDeleteLeagueClick: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
     var showDeleteConfirmDialog by remember { mutableStateOf<String?>(null) }
+    var showTeamsDialogForLeague by remember { mutableStateOf<League?>(null) }
 
     Scaffold(
         topBar = {
@@ -86,12 +89,17 @@ fun AdminManageLeaguesScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            IconButton(onClick = { showDeleteConfirmDialog = league.id }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete League",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { showTeamsDialogForLeague = league }) {
+                                    Text("View Teams")
+                                }
+                                IconButton(onClick = { showDeleteConfirmDialog = league.id }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete League",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }
@@ -117,6 +125,30 @@ fun AdminManageLeaguesScreen(
                 dismissButton = {
                     TextButton(onClick = { showDeleteConfirmDialog = null }) {
                         Text("Cancel")
+                    }
+                }
+            )
+        }
+        
+        showTeamsDialogForLeague?.let { league ->
+            val leagueTeams = teams.filter { league.teamIds.contains(it.id) }
+            AlertDialog(
+                onDismissRequest = { showTeamsDialogForLeague = null },
+                title = { Text("Teams in ${league.name}") },
+                text = {
+                    if (leagueTeams.isEmpty()) {
+                        Text("No teams have been assigned to this league yet.")
+                    } else {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(leagueTeams) { team ->
+                                Text("• ${team.name} (${team.department})")
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showTeamsDialogForLeague = null }) {
+                        Text("Close")
                     }
                 }
             )

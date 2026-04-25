@@ -349,9 +349,14 @@ fun PolyScoresApp() {
                                 teamId = teamId,
                                 playerId = playerId,
                                 playerName = playerName,
-                                minute = minute
+                                minute = minute,
+                                description = "$playerName ($minute')"
                             )
                             matchesViewModel.addMatchEvent(event)
+                        },
+                        onUpdateAnalytics = { hp, ap, hSot, aSot, hC, aC, hF, aF ->
+                            matchesViewModel.updateMatchAnalytics(match.id, hp, ap, hSot, aSot, hC, aC, hF, aF)
+                            android.widget.Toast.makeText(context, "Analytics Saved", android.widget.Toast.LENGTH_SHORT).show()
                         },
                         onBackClick = { navController.popBackStack() }
                     )
@@ -361,6 +366,7 @@ fun PolyScoresApp() {
             composable(Screen.AdminManageLeagues) {
                 AdminManageLeaguesScreen(
                     leagues = leagues,
+                    teams = teams,
                     onAddLeagueClick = { showManageLeaguesDialog = true },
                     onDeleteLeagueClick = { leagueId ->
                         leaguesViewModel.deleteLeague(leagueId)
@@ -372,6 +378,16 @@ fun PolyScoresApp() {
 
             composable(Screen.AdminStandingsEditor) {
                 val currentStandings by standingsViewModel.standings.collectAsState()
+                
+                LaunchedEffect(selectedLeagueId) {
+                    if (selectedLeagueId.isNotEmpty()) {
+                        val leagueMatches = matches.filter { it.leagueId == selectedLeagueId }
+                        val league = leagues.find { it.id == selectedLeagueId }
+                        val leagueTeams = teams.filter { league?.teamIds?.contains(it.id) == true }
+                        standingsViewModel.loadStandings(selectedLeagueId, leagueMatches, leagueTeams)
+                    }
+                }
+                
                 AdminStandingsEditorScreen(
                     leagues = leagues,
                     standings = currentStandings,
@@ -411,11 +427,12 @@ fun PolyScoresApp() {
                 if (showManageTeamsDialog) {
                     ManageTeamsDialog(
                         onDismiss = { showManageTeamsDialog = false },
-                        onCreateTeam = { name, department, coach ->
+                        onCreateTeam = { name, department, coach, formation ->
                             teamsViewModel.createTeam(
                                 name = name,
                                 department = department,
                                 coach = coach,
+                                formation = formation,
                                 onSuccess = {
                                     showManageTeamsDialog = false
                                     android.widget.Toast.makeText(context, "Team created successfully", android.widget.Toast.LENGTH_SHORT).show()

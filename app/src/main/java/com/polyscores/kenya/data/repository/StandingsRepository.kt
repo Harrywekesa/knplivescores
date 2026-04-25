@@ -16,8 +16,17 @@ class StandingsRepository {
     /**
      * Calculate and generate standings from match results
      */
-    suspend fun calculateStandings(leagueId: String, matches: List<Match>): List<StandingsEntry> {
+    suspend fun calculateStandings(leagueId: String, matches: List<Match>, leagueTeams: List<com.polyscores.kenya.data.model.Team>): List<StandingsEntry> {
         val teamStats = mutableMapOf<String, MutableStandingsData>()
+
+        // Initialize all teams in the league so they appear even with 0 points
+        leagueTeams.forEach { team ->
+            teamStats[team.id] = MutableStandingsData(
+                teamId = team.id,
+                teamName = team.name,
+                teamLogo = team.logoUrl
+            )
+        }
 
         // Get all completed matches for the league
         val completedMatches = matches.filter {
@@ -27,7 +36,7 @@ class StandingsRepository {
 
         // Process each match to calculate stats
         completedMatches.forEach { match ->
-            // Initialize teams if not exists
+            // In case a match has teams not in leagueTeams (should not happen, but safe fallback)
             if (!teamStats.containsKey(match.homeTeamId)) {
                 teamStats[match.homeTeamId] = MutableStandingsData(
                     teamId = match.homeTeamId,

@@ -24,12 +24,13 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
-    fun createTeam(name: String, department: String, coach: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+    fun createTeam(name: String, department: String, coach: String, formation: String = "4-3-3", onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         viewModelScope.launch {
             val team = Team(
                 name = name,
                 department = department,
                 coachName = coach,
+                formation = formation,
                 isActive = true
             )
             val result = teamsRepository.createTeam(team)

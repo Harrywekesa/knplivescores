@@ -81,8 +81,16 @@ private fun HeaderCell(
 
 @Composable
 private fun StandingsRow(entry: StandingsEntry) {
+    val backgroundColor = if (entry.position <= 3) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+    } else if (entry.position % 2 == 0) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
     Surface(
-        color = MaterialTheme.colorScheme.surface
+        color = backgroundColor
     ) {
         Row(
             modifier = Modifier
