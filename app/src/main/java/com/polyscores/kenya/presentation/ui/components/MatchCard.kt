@@ -109,7 +109,9 @@ fun MatchCard(
                     } else {
                         ScoreDisplay(
                             homeScore = match.homeScore,
-                            awayScore = match.awayScore
+                            awayScore = match.awayScore,
+                            lastUpdated = match.lastUpdated,
+                            status = match.matchStatus
                         )
                     }
 
@@ -172,8 +174,15 @@ private fun LiveBadge() {
 @Composable
 private fun ScoreDisplay(
     homeScore: Int,
-    awayScore: Int
+    awayScore: Int,
+    lastUpdated: com.google.firebase.Timestamp,
+    status: MatchStatus
 ) {
+    // If LIVE and updated within the last 3 minutes (180000 ms), it's tentative
+    val now = System.currentTimeMillis()
+    val isTentative = status == MatchStatus.LIVE && (now - lastUpdated.toDate().time) < 180000
+    val scoreColor = if (isTentative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -181,18 +190,18 @@ private fun ScoreDisplay(
             text = homeScore.toString(),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = scoreColor
         )
         Text(
             text = " - ",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = scoreColor
         )
         Text(
             text = awayScore.toString(),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = scoreColor
         )
     }
 }

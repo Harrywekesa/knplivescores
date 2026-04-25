@@ -21,15 +21,15 @@ fun StandingsTable(
     standings: List<StandingsEntry>,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-    ) {
-        // Header
-        StandingsHeader()
+    Row(modifier = modifier.horizontalScroll(rememberScrollState())) {
+        Column {
+            // Header
+            StandingsHeader()
 
-        // Rows
-        standings.forEach { entry ->
-            StandingsRow(entry = entry)
+            // Rows
+            standings.forEach { entry ->
+                StandingsRow(entry = entry)
+            }
         }
     }
 }
@@ -42,7 +42,6 @@ private fun StandingsHeader() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -95,7 +94,6 @@ private fun StandingsRow(entry: StandingsEntry) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

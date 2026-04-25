@@ -268,11 +268,15 @@ private fun AdminMatchCard(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    val now = System.currentTimeMillis()
+                    val isTentative = match.matchStatus == MatchStatus.LIVE && (now - match.lastUpdated.toDate().time) < 180000
+                    val scoreColor = if (isTentative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+
                     Text(
                         text = "${match.homeScore} - ${match.awayScore}",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = scoreColor
                     )
                     if (match.matchStatus == MatchStatus.LIVE || match.matchStatus == MatchStatus.HALFTIME || match.matchStatus == MatchStatus.SECOND_HALF) {
                         com.polyscores.kenya.presentation.ui.components.LiveMatchTimer(match = match)
