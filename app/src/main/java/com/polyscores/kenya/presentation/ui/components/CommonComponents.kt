@@ -33,16 +33,22 @@ fun PolyScoresTopBar(
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        shadowElevation = 4.dp,
+        shadowElevation = 8.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                )
                 .padding(horizontal = 4.dp, vertical = 8.dp)
-                .height(48.dp),
+                .height(56.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (showBackButton) {
@@ -50,7 +56,7 @@ fun PolyScoresTopBar(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = Color.White
                     )
                 }
             } else {
@@ -61,6 +67,7 @@ fun PolyScoresTopBar(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
+                color = Color.White,
                 modifier = Modifier.weight(1f)
             )
             

@@ -37,7 +37,7 @@ fun StandingsTable(
 @Composable
 private fun StandingsHeader() {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = MaterialTheme.colorScheme.primary
     ) {
         Row(
             modifier = Modifier
@@ -70,7 +70,7 @@ private fun HeaderCell(
         text = text,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = Color.White,
         modifier = Modifier
             .width(width)
             .padding(horizontal = 4.dp),
