@@ -20,16 +20,24 @@ class StandingsViewModel(application: Application) : AndroidViewModel(applicatio
     fun loadStandings(leagueId: String, matches: List<com.polyscores.kenya.data.model.Match>, teams: List<com.polyscores.kenya.data.model.Team>) {
         viewModelScope.launch {
             val currentStandings = standingsRepository.getStandings(leagueId)
-            if (currentStandings.isNotEmpty()) {
-                _standings.value = currentStandings
-            } else {
-                // Auto-calculate on the fly for the public view
-                val rawStandings = standingsRepository.calculateStandings(leagueId, matches, teams)
-                val sortedRawStandings = rawStandings.sortedWith(compareByDescending<StandingsEntry> { it.points }
-                    .thenByDescending { it.goalDifference }
-                    .thenByDescending { it.goalsFor })
-                    .mapIndexed { index, entry -> entry.copy(position = index + 1) }
+            val rawStandings = standingsRepository.calculateStandings(leagueId, matches, teams)
+            
+            val sortedRawStandings = rawStandings.sortedWith(compareByDescending<StandingsEntry> { it.points }
+                .thenByDescending { it.goalDifference }
+                .thenByDescending { it.goalsFor })
+                .mapIndexed { index, entry -> entry.copy(position = index + 1) }
+
+            val savedPlayed = currentStandings.sumOf { it.played }
+            val autoPlayed = rawStandings.sumOf { it.played }
+
+            // If DB is empty, or the number of played games has changed (a new match finished or was deleted),
+            // we should automatically update the DB with the new calculations.
+            if (currentStandings.isEmpty() || savedPlayed != autoPlayed) {
                 _standings.value = sortedRawStandings
+                // Save the newly auto-calculated standings to DB so it becomes the source of truth
+                standingsRepository.saveStandings(leagueId, sortedRawStandings)
+            } else {
+                _standings.value = currentStandings
             }
         }
     }

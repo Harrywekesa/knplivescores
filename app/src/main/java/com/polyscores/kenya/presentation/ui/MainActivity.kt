@@ -217,6 +217,15 @@ fun PolyScoresApp() {
             }
 
             composable(Screen.Standings) {
+                LaunchedEffect(selectedLeagueId, matches) {
+                    if (selectedLeagueId.isNotEmpty()) {
+                        val leagueMatches = matches.filter { it.leagueId == selectedLeagueId }
+                        val league = leagues.find { it.id == selectedLeagueId }
+                        val leagueTeams = teams.filter { league?.teamIds?.contains(it.id) == true }
+                        standingsViewModel.loadStandings(selectedLeagueId, leagueMatches, leagueTeams)
+                    }
+                }
+
                 val topScorers by matchesViewModel.topScorers.collectAsState(initial = emptyList())
                 val topScorersWithTeam = topScorers.map { scorer ->
                     val teamName = teams.find { it.id == scorer.second }?.name ?: "Unknown"
@@ -379,7 +388,7 @@ fun PolyScoresApp() {
             composable(Screen.AdminStandingsEditor) {
                 val currentStandings by standingsViewModel.standings.collectAsState()
                 
-                LaunchedEffect(selectedLeagueId) {
+                LaunchedEffect(selectedLeagueId, matches) {
                     if (selectedLeagueId.isNotEmpty()) {
                         val leagueMatches = matches.filter { it.leagueId == selectedLeagueId }
                         val league = leagues.find { it.id == selectedLeagueId }
