@@ -21,6 +21,7 @@ import androidx.core.view.WindowCompat
 
 val KitaleMaroon = Color(0xFF7B241C)
 val KitaleMaroonDark = Color(0xFF511812)
+val KitaleMaroonLight = Color(0xFFE57373) // Lighter red/maroon for dark mode contrast
 val KitaleGold = Color(0xFFF1C40F)
 val KitaleBlack = Color(0xFF1E1E1E)
 val KitaleWhite = Color(0xFFFFFFFF)
@@ -36,7 +37,7 @@ val Warning = Color(0xFFF39C12)
 val Info = Color(0xFF3498DB)
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Primary,
+    primary = KitaleMaroonLight,
     onPrimary = KitaleWhite,
     primaryContainer = PrimaryVariant,
     onPrimaryContainer = KitaleWhite,

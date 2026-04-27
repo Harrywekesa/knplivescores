@@ -167,24 +167,7 @@ fun SettingsScreen(
                 }
             }
 
-            // About Section
-            SettingsSection(title = "About") {
-                SettingsItem(
-                    icon = Icons.Default.Info,
-                    title = "App Version",
-                    subtitle = "1.0.0"
-                )
-                SettingsItem(
-                    icon = Icons.Default.Policy,
-                    title = "Privacy Policy",
-                    subtitle = "Read our privacy policy"
-                )
-                SettingsItem(
-                    icon = Icons.Default.Description,
-                    title = "Terms of Service",
-                    subtitle = "Read our terms of service"
-                )
-            }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
