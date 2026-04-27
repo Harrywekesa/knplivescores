@@ -23,14 +23,12 @@ class UpdateReceiver : BroadcastReceiver() {
                     if (statusColumn != -1) {
                         val status = cursor.getInt(statusColumn)
                         if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                            val uriColumn = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
-                            if (uriColumn != -1) {
-                                val localUriStr = cursor.getString(uriColumn)
-                                if (localUriStr != null) {
-                                    val localUri = Uri.parse(localUriStr)
-                                    val file = File(localUri.path ?: "")
-                                    installApk(context, file)
-                                }
+                            // Get the content:// URI directly from DownloadManager
+                            val apkUri = downloadManager.getUriForDownloadedFile(downloadId)
+                            if (apkUri != null) {
+                                installApk(context, apkUri)
+                            } else {
+                                Log.e("UpdateReceiver", "Downloaded file URI is null")
                             }
                         }
                     }
@@ -40,14 +38,8 @@ class UpdateReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun installApk(context: Context, file: File) {
+    private fun installApk(context: Context, apkUri: Uri) {
         try {
-            val apkUri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
