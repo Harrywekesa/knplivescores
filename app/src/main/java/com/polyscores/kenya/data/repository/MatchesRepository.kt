@@ -160,6 +160,46 @@ class MatchesRepository {
     }
 
     /**
+     * Update match statistics
+     */
+    suspend fun updateMatchStats(
+        matchId: String,
+        homePossession: Int,
+        awayPossession: Int,
+        homeShots: Int,
+        awayShots: Int,
+        homeShotsOnTarget: Int,
+        awayShotsOnTarget: Int,
+        homeCorners: Int,
+        awayCorners: Int,
+        homeFouls: Int,
+        awayFouls: Int
+    ): Result<Unit> {
+        return try {
+            matchesCollection.document(matchId)
+                .update(
+                    mapOf(
+                        "homePossession" to homePossession,
+                        "awayPossession" to awayPossession,
+                        "homeShots" to homeShots,
+                        "awayShots" to awayShots,
+                        "homeShotsOnTarget" to homeShotsOnTarget,
+                        "awayShotsOnTarget" to awayShotsOnTarget,
+                        "homeCorners" to homeCorners,
+                        "awayCorners" to awayCorners,
+                        "homeFouls" to homeFouls,
+                        "awayFouls" to awayFouls,
+                        "lastUpdated" to Timestamp.now()
+                    )
+                )
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Update match status
      */
     suspend fun updateMatchStatus(

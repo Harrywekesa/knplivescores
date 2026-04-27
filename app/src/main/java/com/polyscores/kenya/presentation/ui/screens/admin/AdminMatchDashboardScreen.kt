@@ -30,7 +30,7 @@ fun AdminMatchDashboardScreen(
     onUpdateLineups: (List<String>, List<String>, List<String>, List<String>) -> Unit,
     onDeleteMatch: () -> Unit,
     onAddEvent: (MatchEventType, String, String, String, Int, Boolean) -> Unit,
-    onUpdateAnalytics: (Int, Int, Int, Int, Int, Int, Int, Int) -> Unit,
+    onUpdateAnalytics: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Unit,
     onBackClick: () -> Unit
 ) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -405,10 +405,12 @@ fun MatchEventBuilder(
 @Composable
 fun MatchAnalyticsEditor(
     match: Match,
-    onSaveAnalytics: (Int, Int, Int, Int, Int, Int, Int, Int) -> Unit
+    onSaveAnalytics: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Unit
 ) {
     var homePoss by remember { mutableStateOf(match.homePossession) }
     var awayPoss by remember { mutableStateOf(match.awayPossession) }
+    var homeShots by remember { mutableStateOf(match.homeShots) }
+    var awayShots by remember { mutableStateOf(match.awayShots) }
     var homeShotsOnTarget by remember { mutableStateOf(match.homeShotsOnTarget) }
     var awayShotsOnTarget by remember { mutableStateOf(match.awayShotsOnTarget) }
     var homeCorners by remember { mutableStateOf(match.homeCorners) }
@@ -431,12 +433,13 @@ fun MatchAnalyticsEditor(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
             AnalyticsRow("Possession %", homePoss, awayPoss, { homePoss = it; awayPoss = 100 - it }, { awayPoss = it; homePoss = 100 - it })
+            AnalyticsRow("Total Shots", homeShots, awayShots, { homeShots = it }, { awayShots = it })
             AnalyticsRow("Shots on Target", homeShotsOnTarget, awayShotsOnTarget, { homeShotsOnTarget = it }, { awayShotsOnTarget = it })
             AnalyticsRow("Corners", homeCorners, awayCorners, { homeCorners = it }, { awayCorners = it })
             AnalyticsRow("Fouls", homeFouls, awayFouls, { homeFouls = it }, { awayFouls = it })
 
             Button(
-                onClick = { onSaveAnalytics(homePoss, awayPoss, homeShotsOnTarget, awayShotsOnTarget, homeCorners, awayCorners, homeFouls, awayFouls) },
+                onClick = { onSaveAnalytics(homePoss, awayPoss, homeShots, awayShots, homeShotsOnTarget, awayShotsOnTarget, homeCorners, awayCorners, homeFouls, awayFouls) },
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
             ) {
                 Text("Save Analytics")

@@ -100,30 +100,39 @@ fun MatchDetailsScreen(
                         val homeScoreColor = if (isTentative && match.lastScoringTeamId == match.homeTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
                         val awayScoreColor = if (isTentative && match.lastScoringTeamId == match.awayTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (match.matchStatus == MatchStatus.POSTPONED) {
                             Text(
-                                text = match.homeScore.toString(),
-                                style = MaterialTheme.typography.headlineLarge,
+                                text = "POSTPONED",
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = homeScoreColor
+                                color = MaterialTheme.colorScheme.error
                             )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = match.homeScore.toString(),
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = homeScoreColor
+                                )
+                                Text(
+                                    text = " - ",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = match.awayScore.toString(),
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = awayScoreColor
+                                )
+                            }
                             Text(
-                                text = " - ",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = match.awayScore.toString(),
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = awayScoreColor
+                                text = match.matchStatus.name,
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
-                        Text(
-                            text = match.matchStatus.name,
-                            style = MaterialTheme.typography.labelMedium
-                        )
                         if (match.refereeName.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -146,12 +155,16 @@ fun MatchDetailsScreen(
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
                     Text("Lineups", modifier = Modifier.padding(16.dp))
                 }
+                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) {
+                    Text("Stats", modifier = Modifier.padding(16.dp))
+                }
             }
 
             // Tab Content
             when (selectedTab) {
                 0 -> MatchTimeline(events = events, match = match)
                 1 -> MatchLineups(match = match, homePlayers = homePlayers, awayPlayers = awayPlayers)
+                2 -> com.polyscores.kenya.presentation.ui.components.MatchStatsTab(match = match)
             }
         }
     }

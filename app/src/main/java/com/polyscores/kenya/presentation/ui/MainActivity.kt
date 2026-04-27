@@ -375,8 +375,8 @@ fun PolyScoresApp() {
                             )
                             matchesViewModel.addMatchEvent(event)
                         },
-                        onUpdateAnalytics = { hp, ap, hSot, aSot, hC, aC, hF, aF ->
-                            matchesViewModel.updateMatchAnalytics(match.id, hp, ap, hSot, aSot, hC, aC, hF, aF)
+                        onUpdateAnalytics = { hp, ap, hS, aS, hSot, aSot, hC, aC, hF, aF ->
+                            matchesViewModel.updateMatchAnalytics(match.id, hp, ap, hS, aS, hSot, aSot, hC, aC, hF, aF)
                             android.widget.Toast.makeText(context, "Analytics Saved", android.widget.Toast.LENGTH_SHORT).show()
                         },
                         onBackClick = { navController.popBackStack() }
