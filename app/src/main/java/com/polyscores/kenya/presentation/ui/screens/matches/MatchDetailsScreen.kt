@@ -87,63 +87,117 @@ fun MatchDetailsScreen(
                     .padding(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(match.homeTeamName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        val now = System.currentTimeMillis()
-                        val isTentative = match.matchStatus == MatchStatus.LIVE && (now - match.lastUpdated.toDate().time) < 180000
-                        val homeScoreColor = if (isTentative && match.lastScoringTeamId == match.homeTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
-                        val awayScoreColor = if (isTentative && match.lastScoringTeamId == match.awayTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(match.homeTeamName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val now = System.currentTimeMillis()
+                            val isTentative = match.matchStatus == MatchStatus.LIVE && (now - match.lastUpdated.toDate().time) < 180000
+                            val homeScoreColor = if (isTentative && match.lastScoringTeamId == match.homeTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+                            val awayScoreColor = if (isTentative && match.lastScoringTeamId == match.awayTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
 
-                        if (match.matchStatus == MatchStatus.POSTPONED) {
-                            Text(
-                                text = "POSTPONED",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (match.matchStatus == MatchStatus.POSTPONED) {
                                 Text(
-                                    text = match.homeScore.toString(),
-                                    style = MaterialTheme.typography.headlineLarge,
+                                    text = "POSTPONED",
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = homeScoreColor
+                                    color = MaterialTheme.colorScheme.error
                                 )
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = match.homeScore.toString(),
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = homeScoreColor
+                                    )
+                                    Text(
+                                        text = " - ",
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = match.awayScore.toString(),
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = awayScoreColor
+                                    )
+                                }
                                 Text(
-                                    text = " - ",
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Text(
-                                    text = match.awayScore.toString(),
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = awayScoreColor
+                                    text = match.matchStatus.name,
+                                    style = MaterialTheme.typography.labelMedium
                                 )
                             }
-                            Text(
-                                text = match.matchStatus.name,
-                                style = MaterialTheme.typography.labelMedium
-                            )
+                            if (match.refereeName.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Ref: ${match.refereeName}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                        if (match.refereeName.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Ref: ${match.refereeName}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        
+                        Text(match.awayTeamName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
                     }
-                    
-                    Text(match.awayTeamName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+
+                    val importantEvents = events.filter { 
+                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.GOAL || 
+                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.PENALTY_GOAL || 
+                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.OWN_GOAL || 
+                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.YELLOW_CARD || 
+                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.RED_CARD 
+                    }
+                    if (importantEvents.isNotEmpty()) {
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                importantEvents.filter { it.teamId == match.homeTeamId }.forEach { event ->
+                                    val icon = when (event.eventType) {
+                                        com.polyscores.kenya.data.model.MatchEventType.GOAL -> "⚽"
+                                        com.polyscores.kenya.data.model.MatchEventType.PENALTY_GOAL -> "⚽ (P)"
+                                        com.polyscores.kenya.data.model.MatchEventType.OWN_GOAL -> "⚽ (OG)"
+                                        com.polyscores.kenya.data.model.MatchEventType.YELLOW_CARD -> "🟨"
+                                        com.polyscores.kenya.data.model.MatchEventType.RED_CARD -> "🟥"
+                                        else -> ""
+                                    }
+                                    Text(
+                                        text = "$icon ${event.playerName} ${event.minute}'",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                importantEvents.filter { it.teamId == match.awayTeamId }.forEach { event ->
+                                    val icon = when (event.eventType) {
+                                        com.polyscores.kenya.data.model.MatchEventType.GOAL -> "⚽"
+                                        com.polyscores.kenya.data.model.MatchEventType.PENALTY_GOAL -> "⚽ (P)"
+                                        com.polyscores.kenya.data.model.MatchEventType.OWN_GOAL -> "⚽ (OG)"
+                                        com.polyscores.kenya.data.model.MatchEventType.YELLOW_CARD -> "🟨"
+                                        com.polyscores.kenya.data.model.MatchEventType.RED_CARD -> "🟥"
+                                        else -> ""
+                                    }
+                                    Text(
+                                        text = "${event.minute}' ${event.playerName} $icon",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
 

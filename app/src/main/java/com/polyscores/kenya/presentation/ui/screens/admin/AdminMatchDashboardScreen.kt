@@ -148,7 +148,10 @@ fun AdminMatchDashboardScreen(
             } else if (match.matchStatus == MatchStatus.FULLTIME) {
                 MatchAnalyticsEditor(
                     match = match,
-                    onSaveAnalytics = onUpdateAnalytics
+                    onSaveAnalytics = { hP, aP, hS, aS, hSoT, aSoT, hC, aC, hF, aF ->
+                        onUpdateAnalytics(hP, aP, hS, aS, hSoT, aSoT, hC, aC, hF, aF)
+                        onBackClick()
+                    }
                 )
             }
         }
@@ -370,7 +373,7 @@ fun MatchEventBuilder(
             OutlinedTextField(
                 value = minuteString,
                 onValueChange = { minuteString = it.filter { char -> char.isDigit() } },
-                label = { Text("Minute") },
+                label = { Text("Minute (Auto-captured if empty)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -380,12 +383,13 @@ fun MatchEventBuilder(
                 onClick = {
                     if (selectedPlayer != null) {
                         val teamId = if (isHomeTeam) match.homeTeamId else match.awayTeamId
+                        val finalMinute = minuteString.toIntOrNull() ?: calculateCurrentMatchMinute(match)
                         onSaveEvent(
                             selectedEventType,
                             teamId,
                             selectedPlayer!!.id,
                             selectedPlayer!!.name,
-                            minuteString.toIntOrNull() ?: 0,
+                            finalMinute,
                             isHomeTeam
                         )
                         // Reset form
@@ -394,7 +398,7 @@ fun MatchEventBuilder(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = selectedPlayer != null && minuteString.isNotBlank()
+                enabled = selectedPlayer != null
             ) {
                 Text("Save Event")
             }
@@ -467,5 +471,25 @@ fun AnalyticsRow(label: String, homeVal: Int, awayVal: Int, onHomeChange: (Int) 
             modifier = Modifier.weight(1f),
             textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
         )
+    }
+}
+
+private fun calculateCurrentMatchMinute(match: Match): Int {
+    val now = System.currentTimeMillis()
+    return when (match.matchStatus) {
+        MatchStatus.LIVE -> {
+            val start = match.startTime?.toDate()?.time
+            if (start != null) {
+                ((now - start) / 60000).coerceAtLeast(1).toInt()
+            } else 1
+        }
+        MatchStatus.SECOND_HALF -> {
+            val start = match.secondHalfStartTime?.toDate()?.time
+            if (start != null) {
+                (45 + ((now - start) / 60000)).coerceAtLeast(46).toInt()
+            } else 46
+        }
+        MatchStatus.EXTRA_TIME -> 90
+        else -> 0
     }
 }
