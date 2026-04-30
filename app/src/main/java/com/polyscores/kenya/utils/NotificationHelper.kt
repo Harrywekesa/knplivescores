@@ -156,6 +156,18 @@ class NotificationHelper(private val context: Context) {
     }
 
     // FCM Notification Handlers
+    fun showLineupNotification(title: String, body: String, data: Map<String, String>? = null) {
+        val builder = NotificationCompat.Builder(context, defaultChannelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
+    }
+
     fun showGoalNotification(title: String, body: String, data: Map<String, String>) {
         val soundUri = android.net.Uri.parse("android.resource://${context.packageName}/${R.raw.goal_horn}")
         val builder = NotificationCompat.Builder(context, goalChannelId)

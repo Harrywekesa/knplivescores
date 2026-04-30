@@ -259,6 +259,16 @@ class MatchesViewModel(
                 awayStartingXI,
                 awayBench
             )
+            val currentMatch = matches.value.find { it.id == matchId }
+            if (currentMatch != null) {
+                val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
+                if (prefs.notificationsEnabled) {
+                    com.polyscores.kenya.utils.NotificationHelper(getApplication()).showLineupNotification(
+                        title = "Lineups Released! 📋",
+                        body = "${currentMatch.homeTeamName} vs ${currentMatch.awayTeamName} starting XI is out now!"
+                    )
+                }
+            }
         }
     }
 

@@ -46,49 +46,67 @@ exports.sendEventNotification = functions.firestore
         }
     });
 
-// Listen for match status changes (e.g. Kickoff, Full Time)
-exports.sendMatchStatusNotification = functions.firestore
+// Listen for match updates (Status changes and Lineup releases)
+exports.sendMatchUpdateNotification = functions.firestore
     .document("matches/{matchId}")
     .onUpdate(async (change, context) => {
         const newValue = change.after.data();
         const previousValue = change.before.data();
 
-        // Check if status changed
-        if (newValue.matchStatus === previousValue.matchStatus) {
-            return null;
-        }
-
-        const status = newValue.matchStatus;
+        // 1. Check for Lineup Release
+        const homeLineupChanged = previousValue.homeStartingXI.length === 0 && newValue.homeStartingXI.length > 0;
+        const awayLineupChanged = previousValue.awayStartingXI.length === 0 && newValue.awayStartingXI.length > 0;
         
-        // We only notify for important status changes
-        const isKickoff = status === "LIVE";
-        const isFullTime = status === "FULLTIME";
-
-        if (!isKickoff && !isFullTime) {
-            return null;
+        if (homeLineupChanged || awayLineupChanged) {
+            const payload = {
+                notification: {
+                    title: "Lineups Released! 📋",
+                    body: `${newValue.homeTeamName} vs ${newValue.awayTeamName} starting XI is out now!`,
+                },
+                data: {
+                    type: "general",
+                    matchId: context.params.matchId,
+                },
+                topic: "all_matches",
+            };
+            try {
+                await admin.messaging().send(payload);
+                console.log("Successfully sent lineup message");
+            } catch (error) {
+                console.log("Error sending lineup message:", error);
+            }
         }
 
-        const title = isKickoff ? "Match Started! ⚽" : "Full Time 🏁";
-        const body = `${newValue.homeTeamName} vs ${newValue.awayTeamName}`;
+        // 2. Check for Status Change
+        if (newValue.matchStatus !== previousValue.matchStatus) {
+            const status = newValue.matchStatus;
+            const isKickoff = status === "LIVE";
+            const isFullTime = status === "FULLTIME";
 
-        const payload = {
-            notification: {
-                title: title,
-                body: body,
-            },
-            data: {
-                type: isKickoff ? "match_start" : "full_time",
-                matchId: context.params.matchId,
-            },
-            topic: "all_matches",
-        };
+            if (isKickoff || isFullTime) {
+                const title = isKickoff ? "Match Started! ⚽" : "Full Time 🏁";
+                const body = `${newValue.homeTeamName} vs ${newValue.awayTeamName}`;
 
-        try {
-            const response = await admin.messaging().send(payload);
-            console.log("Successfully sent status message:", response);
-            return response;
-        } catch (error) {
-            console.log("Error sending status message:", error);
-            return null;
+                const payload = {
+                    notification: {
+                        title: title,
+                        body: body,
+                    },
+                    data: {
+                        type: isKickoff ? "match_start" : "full_time",
+                        matchId: context.params.matchId,
+                    },
+                    topic: "all_matches",
+                };
+
+                try {
+                    await admin.messaging().send(payload);
+                    console.log("Successfully sent status message");
+                } catch (error) {
+                    console.log("Error sending status message:", error);
+                }
+            }
         }
+
+        return null;
     });
