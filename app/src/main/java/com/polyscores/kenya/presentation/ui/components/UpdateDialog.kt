@@ -29,8 +29,7 @@ fun UpdateDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
-                    .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -50,11 +49,18 @@ fun UpdateDialog(
                 
                 if (updateInfo.releaseNotes.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "What's new:\n${updateInfo.releaseNotes}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                    ) {
+                        Text(
+                            text = "What's new:\n${updateInfo.releaseNotes}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))
