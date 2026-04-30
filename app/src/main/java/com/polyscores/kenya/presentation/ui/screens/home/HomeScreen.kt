@@ -32,10 +32,10 @@ fun HomeScreen(
     val recentMatches = matches.filter {
         it.matchStatus == MatchStatus.FULLTIME ||
         it.matchStatus == MatchStatus.HALFTIME
-    }.take(5)
-    val upcomingMatches = matches.filter {
+    }.sortedByDescending { it.lastUpdated }.take(10)
+    val fixtures = matches.filter {
         it.matchStatus == MatchStatus.SCHEDULED
-    }.take(5)
+    }.sortedBy { it.scheduledTime }.take(10)
 
     Scaffold(
         topBar = {
@@ -75,16 +75,16 @@ fun HomeScreen(
                 }
             }
 
-            // Upcoming Matches Section
-            if (upcomingMatches.isNotEmpty()) {
+            // Fixtures Section
+            if (fixtures.isNotEmpty()) {
                 item {
                     SectionHeader(
-                        title = "Upcoming",
+                        title = "Fixtures",
                         actionLabel = "See All",
                         onActionClick = onNavigateToMatches
                     )
                 }
-                items(upcomingMatches) { match ->
+                items(fixtures) { match ->
                     MatchCard(
                         match = match,
                         onClick = { onMatchClick(match.id) }

@@ -22,9 +22,10 @@ class MatchesRepository {
     /**
      * Get all matches as a Flow for real-time updates
      */
-    fun getAllMatches(): Flow<List<Match>> = callbackFlow {
+    fun getAllMatches(limit: Long = 50): Flow<List<Match>> = callbackFlow {
         val listener = matchesCollection
             .orderBy("scheduledTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(limit)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     android.util.Log.e("MatchesRepository", "Error getAllMatches", error)
@@ -120,6 +121,18 @@ class MatchesRepository {
             }
 
         awaitClose { listener.remove() }
+    }
+
+    /**
+     * Get match events once for logic checking
+     */
+    suspend fun getMatchEventsOnce(matchId: String): List<MatchEvent> {
+        return try {
+            val snapshot = eventsCollection.whereEqualTo("matchId", matchId).get().await()
+            snapshot.documents.mapNotNull { it.toObject(MatchEvent::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     /**

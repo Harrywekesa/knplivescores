@@ -198,6 +198,12 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                         fontWeight = FontWeight.Bold
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Version ${com.polyscores.kenya.BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

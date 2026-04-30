@@ -298,7 +298,19 @@ fun MatchEventBuilder(
     var expandedPlayer by remember { mutableStateOf(false) }
     var minuteString by remember { mutableStateOf("") }
 
-    val currentPlayers = if (isHomeTeam) homePlayers else awayPlayers
+    val currentPlayers = if (isHomeTeam) {
+        if (selectedEventType == MatchEventType.SUBSTITUTION_IN) {
+            homePlayers.filter { match.homeBench.contains(it.id) }
+        } else {
+            homePlayers.filter { match.homeStartingXI.contains(it.id) }
+        }
+    } else {
+        if (selectedEventType == MatchEventType.SUBSTITUTION_IN) {
+            awayPlayers.filter { match.awayBench.contains(it.id) }
+        } else {
+            awayPlayers.filter { match.awayStartingXI.contains(it.id) }
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),

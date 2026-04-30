@@ -154,4 +154,49 @@ class NotificationHelper(private val context: Context) {
 
         notificationManager.notify((matchHome + status.name).hashCode(), builder.build())
     }
+
+    // FCM Notification Handlers
+    fun showGoalNotification(title: String, body: String, data: Map<String, String>) {
+        val soundUri = android.net.Uri.parse("android.resource://${context.packageName}/${R.raw.goal_horn}")
+        val builder = NotificationCompat.Builder(context, goalChannelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setFullScreenIntent(null, true) // Wakes up the device
+            .setAutoCancel(true)
+            .setSound(soundUri)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
+    }
+
+    fun showMatchNotification(title: String, body: String, data: Map<String, String>) {
+        val builder = NotificationCompat.Builder(context, defaultChannelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setFullScreenIntent(null, true) // Wakes up the device
+            .setAutoCancel(true)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
+    }
+
+    fun showGeneralNotification(title: String, body: String) {
+        val builder = NotificationCompat.Builder(context, defaultChannelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
+    }
 }

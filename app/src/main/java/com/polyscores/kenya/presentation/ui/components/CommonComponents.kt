@@ -61,6 +61,11 @@ fun PolyScoresTopBar(
                 }
             } else {
                 Spacer(modifier = Modifier.width(16.dp))
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = com.polyscores.kenya.R.drawable.ic_knp_logo),
+                    contentDescription = "KNP Logo",
+                    modifier = Modifier.size(32.dp).padding(end = 8.dp)
+                )
             }
             
             Text(

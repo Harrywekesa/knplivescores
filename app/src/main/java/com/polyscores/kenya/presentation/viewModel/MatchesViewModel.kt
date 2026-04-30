@@ -162,13 +162,27 @@ class MatchesViewModel(
 
     fun addMatchEvent(event: MatchEvent) {
         viewModelScope.launch {
-            matchesRepository.addMatchEvent(event)
-            val currentMatch = matches.value.find { it.id == event.matchId }
+            // First check for 2nd Yellow Card logic if it's a Yellow Card
+            var actualEvent = event
+            if (event.eventType == MatchEventType.YELLOW_CARD) {
+                val previousEvents = matchesRepository.getMatchEventsOnce(event.matchId)
+                val yellowCount = previousEvents.count { it.playerId == event.playerId && it.eventType == MatchEventType.YELLOW_CARD }
+                if (yellowCount >= 1) {
+                    // This is their second yellow, convert to Red Card
+                    actualEvent = event.copy(
+                        eventType = MatchEventType.RED_CARD,
+                        description = "${event.description} (Second Yellow)"
+                    )
+                }
+            }
+
+            matchesRepository.addMatchEvent(actualEvent)
+            val currentMatch = matches.value.find { it.id == actualEvent.matchId }
             if (currentMatch != null) {
                 // Auto-increment score
-                if (event.eventType == MatchEventType.GOAL || event.eventType == MatchEventType.PENALTY_GOAL || event.eventType == MatchEventType.OWN_GOAL) {
-                    val isHomeTeam = event.teamId == currentMatch.homeTeamId
-                    val isOwnGoal = event.eventType == MatchEventType.OWN_GOAL
+                if (actualEvent.eventType == MatchEventType.GOAL || actualEvent.eventType == MatchEventType.PENALTY_GOAL || actualEvent.eventType == MatchEventType.OWN_GOAL) {
+                    val isHomeTeam = actualEvent.teamId == currentMatch.homeTeamId
+                    val isOwnGoal = actualEvent.eventType == MatchEventType.OWN_GOAL
                     
                     // If it's an own goal by the home team, the away team gets the point, and vice-versa
                     val scoreForHome = if (isOwnGoal) !isHomeTeam else isHomeTeam
@@ -183,12 +197,38 @@ class MatchesViewModel(
                     matchesRepository.updateMatchScore(currentMatch.id, newHomeScore, newAwayScore, scoringTeamId)
                 }
 
+                // Handle Substitutions and Red Cards (Remove/Add to StartingXI)
+                if (actualEvent.eventType == MatchEventType.RED_CARD || 
+                    actualEvent.eventType == MatchEventType.SUBSTITUTION_OUT || 
+                    actualEvent.eventType == MatchEventType.SUBSTITUTION_IN) {
+                    
+                    val isHomeTeam = actualEvent.teamId == currentMatch.homeTeamId
+                    val hStart = currentMatch.homeStartingXI.toMutableList()
+                    val hBench = currentMatch.homeBench.toMutableList()
+                    val aStart = currentMatch.awayStartingXI.toMutableList()
+                    val aBench = currentMatch.awayBench.toMutableList()
+
+                    if (actualEvent.eventType == MatchEventType.RED_CARD || actualEvent.eventType == MatchEventType.SUBSTITUTION_OUT) {
+                        if (isHomeTeam) hStart.remove(actualEvent.playerId) else aStart.remove(actualEvent.playerId)
+                    } else if (actualEvent.eventType == MatchEventType.SUBSTITUTION_IN) {
+                        if (isHomeTeam) {
+                            hBench.remove(actualEvent.playerId)
+                            if (!hStart.contains(actualEvent.playerId)) hStart.add(actualEvent.playerId)
+                        } else {
+                            aBench.remove(actualEvent.playerId)
+                            if (!aStart.contains(actualEvent.playerId)) aStart.add(actualEvent.playerId)
+                        }
+                    }
+
+                    matchesRepository.updateMatchLineups(currentMatch.id, hStart, hBench, aStart, aBench)
+                }
+
                 val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
                 if (prefs.notificationsEnabled) {
                     com.polyscores.kenya.utils.NotificationHelper(getApplication()).showEventNotification(
                         matchHome = currentMatch.homeTeamName,
                         matchAway = currentMatch.awayTeamName,
-                        event = event,
+                        event = actualEvent,
                         playSound = prefs.soundEnabled,
                         vibrate = prefs.vibrationEnabled
                     )

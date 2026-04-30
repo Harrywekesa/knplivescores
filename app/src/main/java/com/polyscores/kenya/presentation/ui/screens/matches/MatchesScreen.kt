@@ -75,6 +75,12 @@ fun MatchesScreen(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 }
                 ) {
+                    Text("Fixtures", modifier = Modifier.padding(16.dp))
+                }
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 }
+                ) {
                     Text("Results", modifier = Modifier.padding(16.dp))
                 }
             }
@@ -82,8 +88,9 @@ fun MatchesScreen(
             // Matches List
             val displayMatches = when (selectedTab) {
                 0 -> filteredMatches
-                1 -> filteredMatches.filter { it.matchStatus.name == "LIVE" }
-                else -> filteredMatches.filter { it.matchStatus.name == "FULLTIME" }
+                1 -> filteredMatches.filter { it.matchStatus.name == "LIVE" || it.matchStatus.name == "SECOND_HALF" || it.matchStatus.name == "EXTRA_TIME" }
+                2 -> filteredMatches.filter { it.matchStatus.name == "SCHEDULED" }.sortedBy { it.scheduledTime }
+                else -> filteredMatches.filter { it.matchStatus.name == "FULLTIME" }.sortedByDescending { it.lastUpdated }
             }
 
             val pullRefreshState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()

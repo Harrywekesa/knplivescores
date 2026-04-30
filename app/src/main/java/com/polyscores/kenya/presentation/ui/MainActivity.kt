@@ -96,6 +96,13 @@ fun PolyScoresApp() {
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("all_matches")
+            .addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    android.util.Log.e("FCM", "Topic subscription failed")
+                }
+            }
+
         val info = updateManager.checkForUpdates()
         if (info != null && info.isUpdateAvailable) {
             updateInfo = info

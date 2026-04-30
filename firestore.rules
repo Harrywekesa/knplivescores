@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if the user is an admin
+    // Note: In a production app, you might check a custom claim like request.auth.token.admin == true
+    // Or you might check against an /admins/{uid} collection. 
+    // Since PolyScores uses basic auth right now, we allow any authenticated user to act as admin.
+    function isAdmin() {
+      return isAuthenticated(); 
+    }
+
+    // Matches Collection
+    match /matches/{matchId} {
+      // Anyone can read match data
+      allow read: if true;
+      // Only admins can create, update, or delete matches
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Match Events Collection
+    match /match_events/{eventId} {
+      // Anyone can read match events
+      allow read: if true;
+      // Only admins can modify events
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Teams Collection
+    match /teams/{teamId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Leagues Collection
+    match /leagues/{leagueId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

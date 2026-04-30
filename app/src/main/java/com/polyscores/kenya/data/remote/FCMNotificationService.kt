@@ -34,18 +34,18 @@ class FCMNotificationService : FirebaseMessagingService() {
 
     private fun handleGoalNotification(title: String, body: String, data: Map<String, String>) {
         // Display goal notification with match details
-        NotificationHelper.showGoalNotification(this, title, body, data)
+        com.polyscores.kenya.utils.NotificationHelper(this).showGoalNotification(title, body, data)
     }
 
     private fun handleMatchStartNotification(title: String, body: String, data: Map<String, String>) {
-        NotificationHelper.showMatchNotification(this, title, body, data)
+        com.polyscores.kenya.utils.NotificationHelper(this).showMatchNotification(title, body, data)
     }
 
     private fun handleFullTimeNotification(title: String, body: String, data: Map<String, String>) {
-        NotificationHelper.showMatchNotification(this, title, body, data)
+        com.polyscores.kenya.utils.NotificationHelper(this).showMatchNotification(title, body, data)
     }
 
     private fun handleGeneralNotification(title: String, body: String, data: Map<String, String>) {
-        NotificationHelper.showGeneralNotification(this, title, body)
+        com.polyscores.kenya.utils.NotificationHelper(this).showGeneralNotification(title, body)
     }
 }
