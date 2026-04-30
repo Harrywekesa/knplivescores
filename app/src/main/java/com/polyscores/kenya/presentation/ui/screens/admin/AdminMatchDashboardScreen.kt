@@ -273,6 +273,17 @@ fun LineupBuilder(
                 val hBench = homeLineupMap.filter { it.value == 2 }.keys.toList()
                 val aStart = awayLineupMap.filter { it.value == 1 }.keys.toList()
                 val aBench = awayLineupMap.filter { it.value == 2 }.keys.toList()
+                
+                if (hStart.size != 11 || aStart.size != 11) {
+                    android.widget.Toast.makeText(context, "Each team must have exactly 11 starting players.", android.widget.Toast.LENGTH_LONG).show()
+                    return@Button
+                }
+                
+                if (hBench.size > 12 || aBench.size > 12) {
+                    android.widget.Toast.makeText(context, "A team can have a maximum of 12 bench players.", android.widget.Toast.LENGTH_LONG).show()
+                    return@Button
+                }
+                
                 onSaveLineups(hStart, hBench, aStart, aBench)
                 android.widget.Toast.makeText(context, "Lineups Saved!", android.widget.Toast.LENGTH_SHORT).show()
             },
