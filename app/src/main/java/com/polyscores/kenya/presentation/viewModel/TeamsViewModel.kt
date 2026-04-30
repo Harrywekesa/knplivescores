@@ -83,4 +83,19 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
             teamsRepository.deletePlayer(playerId)
         }
     }
+
+    fun updatePlayer(
+        player: Player,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val result = teamsRepository.updatePlayer(player)
+            if (result.isSuccess) {
+                onSuccess()
+            } else {
+                onError(result.exceptionOrNull()?.message ?: "Unknown error")
+            }
+        }
+    }
 }

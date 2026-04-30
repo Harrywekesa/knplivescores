@@ -489,6 +489,17 @@ fun PolyScoresApp() {
                         players = players,
                         leagues = leagues,
                         onAddPlayerClick = { showAddPlayerDialog = true },
+                        onEditPlayer = { updatedPlayer ->
+                            teamsViewModel.updatePlayer(
+                                player = updatedPlayer,
+                                onSuccess = {
+                                    android.widget.Toast.makeText(context, "Player updated successfully", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                onError = { error ->
+                                    android.widget.Toast.makeText(context, "Error updating player: $error", android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            )
+                        },
                         onDeletePlayer = { playerId ->
                             teamsViewModel.deletePlayer(playerId)
                         },

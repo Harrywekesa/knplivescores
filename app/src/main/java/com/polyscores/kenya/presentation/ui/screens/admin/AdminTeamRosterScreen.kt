@@ -20,6 +20,8 @@ import com.polyscores.kenya.presentation.ui.components.PolyScoresTopBar
 
 import com.polyscores.kenya.data.model.League
 
+import com.polyscores.kenya.data.model.PlayerPosition
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminTeamRosterScreen(
@@ -27,6 +29,7 @@ fun AdminTeamRosterScreen(
     players: List<Player>,
     leagues: List<League>,
     onAddPlayerClick: () -> Unit,
+    onEditPlayer: (Player) -> Unit,
     onDeletePlayer: (String) -> Unit,
     onDeleteTeam: (String) -> Unit,
     onAssignToLeague: (String) -> Unit,
@@ -34,6 +37,7 @@ fun AdminTeamRosterScreen(
 ) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showAssignLeagueDialog by remember { mutableStateOf(false) }
+    var playerToEdit by remember { mutableStateOf<Player?>(null) }
 
     Scaffold(
         topBar = {
@@ -113,6 +117,7 @@ fun AdminTeamRosterScreen(
                     items(players) { player ->
                         AdminPlayerListItem(
                             player = player,
+                            onEdit = { playerToEdit = player },
                             onDelete = { onDeletePlayer(player.id) }
                         )
                     }
@@ -182,12 +187,24 @@ fun AdminTeamRosterScreen(
                 }
             )
         }
+
+        if (playerToEdit != null) {
+            EditPlayerDialog(
+                player = playerToEdit!!,
+                onDismiss = { playerToEdit = null },
+                onSavePlayer = { updatedPlayer ->
+                    onEditPlayer(updatedPlayer)
+                    playerToEdit = null
+                }
+            )
+        }
     }
 }
 
 @Composable
 fun AdminPlayerListItem(
     player: Player,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     ListItem(
@@ -234,6 +251,14 @@ fun AdminPlayerListItem(
                     }
                 }
                 
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_edit),
+                        contentDescription = "Edit Player",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
@@ -245,4 +270,113 @@ fun AdminPlayerListItem(
         }
     )
     HorizontalDivider()
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditPlayerDialog(
+    player: Player,
+    onDismiss: () -> Unit,
+    onSavePlayer: (Player) -> Unit
+) {
+    var name by remember { mutableStateOf(player.name) }
+    var jerseyNumberString by remember { mutableStateOf(if (player.jerseyNumber > 0) player.jerseyNumber.toString() else "") }
+    var ageString by remember { mutableStateOf(if (player.age > 0) player.age.toString() else "") }
+    var selectedPosition by remember { mutableStateOf(player.position) }
+    var expandedPosition by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Player") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Player Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = jerseyNumberString,
+                        onValueChange = { jerseyNumberString = it.filter { char -> char.isDigit() } },
+                        label = { Text("Jersey #") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = ageString,
+                        onValueChange = { ageString = it.filter { char -> char.isDigit() } },
+                        label = { Text("Age") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedPosition,
+                    onExpandedChange = { expandedPosition = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedPosition.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Position") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPosition) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedPosition,
+                        onDismissRequest = { expandedPosition = false }
+                    ) {
+                        PlayerPosition.values().forEach { position ->
+                            DropdownMenuItem(
+                                text = { Text(position.name) },
+                                onClick = {
+                                    selectedPosition = position
+                                    expandedPosition = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val jerseyNumber = jerseyNumberString.toIntOrNull() ?: 0
+                    val age = ageString.toIntOrNull() ?: 0
+                    val updatedPlayer = player.copy(
+                        name = name,
+                        jerseyNumber = jerseyNumber,
+                        age = age,
+                        position = selectedPosition
+                    )
+                    onSavePlayer(updatedPlayer)
+                },
+                enabled = name.isNotBlank() && jerseyNumberString.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
