@@ -43,6 +43,39 @@ class MatchesViewModel(
                 previousMatches = currentMatches
             }
         }
+        startUpcomingMatchChecker()
+    }
+
+    private fun startUpcomingMatchChecker() {
+        viewModelScope.launch {
+            val notifiedMatches = mutableSetOf<String>()
+            while (true) {
+                val currentMatches = matches.value
+                val now = System.currentTimeMillis()
+                
+                for (match in currentMatches) {
+                    if (match.matchStatus == MatchStatus.SCHEDULED && !notifiedMatches.contains(match.id)) {
+                        val timeDiffMs = match.scheduledTime.toDate().time - now
+                        val timeDiffMinutes = timeDiffMs / (1000 * 60)
+                        
+                        // If match is starting in exactly 10 minutes (or less, but hasn't been notified yet)
+                        if (timeDiffMinutes in 0..10) {
+                            notifiedMatches.add(match.id)
+                            
+                            val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
+                            if (prefs.notificationsEnabled) {
+                                com.polyscores.kenya.utils.NotificationHelper(getApplication()).showMatchNotification(
+                                    title = "Match Starting Soon! ⏳",
+                                    body = "${match.homeTeamName} vs ${match.awayTeamName} kicks off in 10 minutes!",
+                                    data = emptyMap()
+                                )
+                            }
+                        }
+                    }
+                }
+                kotlinx.coroutines.delay(60_000) // Check every minute
+            }
+        }
     }
 
     private fun checkAndTriggerGoalAlerts(currentMatches: List<Match>) {
