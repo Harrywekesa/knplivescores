@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +16,7 @@ import com.polyscores.kenya.data.model.Match
 import com.polyscores.kenya.data.model.MatchStatus
 import com.polyscores.kenya.data.model.MatchEvent
 import com.polyscores.kenya.data.model.Player
+import com.polyscores.kenya.data.model.Team
 import com.polyscores.kenya.presentation.ui.components.PolyScoresTopBar
 
 import coil.imageLoader
@@ -33,6 +35,8 @@ fun MatchDetailsScreen(
     events: List<MatchEvent>,
     homePlayers: List<Player>,
     awayPlayers: List<Player>,
+    homeTeam: Team?,
+    awayTeam: Team?,
     onBackClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -217,7 +221,7 @@ fun MatchDetailsScreen(
             // Tab Content
             when (selectedTab) {
                 0 -> MatchTimeline(events = events, match = match)
-                1 -> MatchLineups(match = match, homePlayers = homePlayers, awayPlayers = awayPlayers)
+                1 -> MatchLineups(match = match, homePlayers = homePlayers, awayPlayers = awayPlayers, homeTeam = homeTeam, awayTeam = awayTeam)
                 2 -> com.polyscores.kenya.presentation.ui.components.MatchStatsTab(match = match)
             }
         }
@@ -274,48 +278,107 @@ fun MatchTimeline(events: List<MatchEvent>, match: Match) {
 }
 
 @Composable
-fun MatchLineups(match: Match, homePlayers: List<Player>, awayPlayers: List<Player>) {
-    val homeStartingMap = homePlayers.associateBy { it.id }
-    val awayStartingMap = awayPlayers.associateBy { it.id }
+fun MatchLineups(
+    match: Match, 
+    homePlayers: List<Player>, 
+    awayPlayers: List<Player>,
+    homeTeam: Team?,
+    awayTeam: Team?
+) {
+    var showHome by remember { mutableStateOf(true) }
 
-    Row(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Home Lineup
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Starting XI", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            match.homeStartingXI.forEach { id ->
-                val player = homeStartingMap[id]
-                if (player != null) {
-                    Text("${player.jerseyNumber}. ${player.name}")
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Bench", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            match.homeBench.forEach { id ->
-                val player = homeStartingMap[id]
-                if (player != null) {
-                    Text("${player.jerseyNumber}. ${player.name}")
+    val currentPlayers = if (showHome) homePlayers else awayPlayers
+    val currentTeam = if (showHome) homeTeam else awayTeam
+    val currentStartingIds = if (showHome) match.homeStartingXI else match.awayStartingXI
+    val currentBenchIds = if (showHome) match.homeBench else match.awayBench
+    val teamColorHex = currentTeam?.primaryColor ?: "#1E88E5"
+    val teamColor = try { Color(android.graphics.Color.parseColor(teamColorHex)) } catch (e: Exception) { Color(0xFF1E88E5) }
+
+    val startingPlayers = currentStartingIds.mapNotNull { id -> currentPlayers.find { it.id == id } }
+    val benchPlayers = currentBenchIds.mapNotNull { id -> currentPlayers.find { it.id == id } }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        // Toggle Switch
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Row {
+                    TextButton(
+                        onClick = { showHome = true },
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = if (showHome) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            contentColor = if (showHome) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)
+                    ) {
+                        Text(match.homeTeamName, modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                    TextButton(
+                        onClick = { showHome = false },
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = if (!showHome) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            contentColor = if (!showHome) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
+                    ) {
+                        Text(match.awayTeamName, modifier = Modifier.padding(horizontal = 16.dp))
+                    }
                 }
             }
         }
 
-        Divider(modifier = Modifier.width(1.dp).fillMaxHeight())
-
-        // Away Lineup
-        Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
-            Text("Starting XI", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            match.awayStartingXI.forEach { id ->
-                val player = awayStartingMap[id]
-                if (player != null) {
-                    Text("${player.jerseyNumber}. ${player.name}")
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            item {
+                if (startingPlayers.isNotEmpty()) {
+                    com.polyscores.kenya.presentation.ui.components.VisualPitchLineup(
+                        players = startingPlayers,
+                        formation = currentTeam?.formation ?: "4-3-3",
+                        primaryColor = teamColor,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxWidth().aspectRatio(0.7f).background(Color.LightGray, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                        Text("Starting XI not released yet.")
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Bench", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            match.awayBench.forEach { id ->
-                val player = awayStartingMap[id]
-                if (player != null) {
-                    Text("${player.jerseyNumber}. ${player.name}")
-                }
+            
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Substitutes", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                HorizontalDivider()
+            }
+            
+            items(benchPlayers) { player ->
+                ListItem(
+                    headlineContent = { Text(player.name) },
+                    supportingContent = { Text(player.position.name) },
+                    leadingContent = {
+                        Surface(
+                            modifier = Modifier.size(32.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = if (player.jerseyNumber > 0) player.jerseyNumber.toString() else "-",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                )
+                HorizontalDivider()
+            }
+            
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }

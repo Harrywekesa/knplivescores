@@ -550,12 +550,16 @@ fun PolyScoresApp() {
                     val events by remember(matchId) { matchesViewModel.getMatchEvents(matchId) }.collectAsState(initial = emptyList())
                     val homePlayers by remember(match.homeTeamId) { teamsViewModel.getTeamPlayers(match.homeTeamId) }.collectAsState(initial = emptyList())
                     val awayPlayers by remember(match.awayTeamId) { teamsViewModel.getTeamPlayers(match.awayTeamId) }.collectAsState(initial = emptyList())
+                    val homeTeam = teams.find { it.id == match.homeTeamId }
+                    val awayTeam = teams.find { it.id == match.awayTeamId }
                     
                     MatchDetailsScreen(
                         match = match,
                         events = events,
                         homePlayers = homePlayers,
                         awayPlayers = awayPlayers,
+                        homeTeam = homeTeam,
+                        awayTeam = awayTeam,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
