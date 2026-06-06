@@ -97,8 +97,8 @@ fun PolyScoresTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            window.statusBarColor = Color(0xFF7B241C).toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false // Keep status bar icon contrast high (light/white icons on dark background)
         }
     }
 

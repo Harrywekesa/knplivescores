@@ -3,6 +3,7 @@ package com.polyscores.kenya.presentation.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,12 +26,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.polyscores.kenya.data.model.Player
 import com.polyscores.kenya.data.model.PlayerPosition
+import com.polyscores.kenya.data.model.MatchEvent
+import com.polyscores.kenya.data.model.MatchEventType
 
 @Composable
 fun VisualPitchLineup(
     players: List<Player>,
     formation: String,
+    events: List<MatchEvent> = emptyList(),
     primaryColor: Color = Color(0xFF1E88E5),
+    onPlayerClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Parse the formation string (e.g. "4-3-3" -> [1, 4, 3, 3])
@@ -57,6 +62,12 @@ fun VisualPitchLineup(
             
             // Render from bottom to top of the screen (GK at bottom)
             for (count in rowCounts) {
+                // Determine layout scaling based on column count in this row
+                val sizeMultiplier = when {
+                    count >= 5 -> 0.75f
+                    count == 4 -> 0.9f
+                    else -> 1.0f
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -70,12 +81,15 @@ fun VisualPitchLineup(
                             PlayerPitchIcon(
                                 player = player,
                                 primaryColor = primaryColor,
-                                isGoalkeeper = isGk
+                                isGoalkeeper = isGk,
+                                events = events.filter { it.playerId == player.id },
+                                sizeMultiplier = sizeMultiplier,
+                                onClick = { onPlayerClick(player.id) }
                             )
                             playerIndex++
                         } else {
                             // Empty slot if we ran out of players
-                            Box(modifier = Modifier.size(50.dp))
+                            Box(modifier = Modifier.size((50 * sizeMultiplier).dp))
                         }
                     }
                 }
@@ -204,35 +218,76 @@ fun FootballPitchBackground() {
 fun PlayerPitchIcon(
     player: Player,
     primaryColor: Color,
-    isGoalkeeper: Boolean
+    isGoalkeeper: Boolean,
+    events: List<MatchEvent> = emptyList(),
+    sizeMultiplier: Float = 1.0f,
+    onClick: () -> Unit = {}
 ) {
-    val jerseyColor = if (isGoalkeeper) Color(0xFFFDD835) else primaryColor // Yellow for GK
+    val gkColor = Color(0xFFFDD835) // Yellow for GK
+    val jerseyColor = if (isGoalkeeper) gkColor else primaryColor
     val onJerseyColor = if (isGoalkeeper) Color.Black else Color.White
+    
+    // Check events
+    val hasRedCard = events.any { it.eventType == MatchEventType.RED_CARD }
+    val hasYellowCard = events.any { it.eventType == MatchEventType.YELLOW_CARD }
+    val goalsScored = events.count { it.eventType == MatchEventType.GOAL || it.eventType == MatchEventType.PENALTY_GOAL }
+    val isSubbedOut = events.any { it.eventType == MatchEventType.SUBSTITUTION_OUT }
+    val isSubbedIn = events.any { it.eventType == MatchEventType.SUBSTITUTION_IN }
+    
+    // Dim the jersey if player has a red card
+    val finalJerseyColor = if (hasRedCard) jerseyColor.copy(alpha = 0.5f) else jerseyColor
     
     // Split name and get last name or shortest readable chunk
     val nameParts = player.name.split(" ")
     val displayName = if (nameParts.size > 1) nameParts.last() else nameParts.first()
 
+    val iconWidth = (60 * sizeMultiplier).dp
+    val jerseySize = (32 * sizeMultiplier).dp
+    val jerseyBorder = (1.5 * sizeMultiplier).dp
+    val jerseyTextSize = (12 * sizeMultiplier).sp
+    val nameTextSize = (10 * sizeMultiplier).sp
+    val badgeOffset = (8 * sizeMultiplier).dp
+    val badgeYOffset = (-4 * sizeMultiplier).dp
+    val badgeTextSize = (10 * sizeMultiplier).sp
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(60.dp)
+        modifier = Modifier.width(iconWidth).clickable { onClick() }
     ) {
-        // Jersey Circle
-        Surface(
-            modifier = Modifier
-                .size(32.dp)
-                .border(1.5.dp, Color.White, CircleShape),
-            shape = CircleShape,
-            color = jerseyColor,
-            shadowElevation = 4.dp
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (player.jerseyNumber > 0) player.jerseyNumber.toString() else "-",
-                    color = onJerseyColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
+        // Jersey Circle with Event Badges
+        Box(contentAlignment = Alignment.TopEnd) {
+            Surface(
+                modifier = Modifier
+                    .size(jerseySize)
+                    .border(jerseyBorder, if (hasRedCard) Color.Red else Color.White, CircleShape),
+                shape = CircleShape,
+                color = finalJerseyColor,
+                shadowElevation = 4.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (player.jerseyNumber > 0) player.jerseyNumber.toString() else "-",
+                        color = onJerseyColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = jerseyTextSize
+                    )
+                }
+            }
+            
+            // Event Badges
+            Row(
+                modifier = Modifier.offset(x = badgeOffset, y = badgeYOffset),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                if (hasRedCard) Text("🟥", fontSize = badgeTextSize)
+                else if (hasYellowCard) Text("🟨", fontSize = badgeTextSize)
+                
+                if (goalsScored > 0) {
+                    Text(if (goalsScored > 1) "⚽x$goalsScored" else "⚽", fontSize = badgeTextSize)
+                }
+                
+                if (isSubbedOut && !hasRedCard) Text("⬇️", fontSize = badgeTextSize)
+                if (isSubbedIn) Text("⬆️", fontSize = badgeTextSize)
             }
         }
         
@@ -246,7 +301,7 @@ fun PlayerPitchIcon(
             Text(
                 text = displayName,
                 color = Color.White,
-                fontSize = 10.sp,
+                fontSize = nameTextSize,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -13,12 +13,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
 import com.polyscores.kenya.data.model.MatchResult
 import com.polyscores.kenya.data.model.StandingsEntry
 
 @Composable
 fun StandingsTable(
     standings: List<StandingsEntry>,
+    onTeamClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Row(modifier = modifier.horizontalScroll(rememberScrollState())) {
@@ -28,7 +30,10 @@ fun StandingsTable(
 
             // Rows
             standings.forEach { entry ->
-                StandingsRow(entry = entry)
+                StandingsRow(
+                    entry = entry,
+                    onTeamClick = onTeamClick
+                )
             }
         }
     }
@@ -79,7 +84,10 @@ private fun HeaderCell(
 }
 
 @Composable
-private fun StandingsRow(entry: StandingsEntry) {
+private fun StandingsRow(
+    entry: StandingsEntry,
+    onTeamClick: ((String) -> Unit)? = null
+) {
     val backgroundColor = if (entry.position <= 3) {
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
     } else if (entry.position % 2 == 0) {
@@ -89,7 +97,10 @@ private fun StandingsRow(entry: StandingsEntry) {
     }
 
     Surface(
-        color = backgroundColor
+        color = backgroundColor,
+        modifier = Modifier.clickable(enabled = onTeamClick != null) {
+            onTeamClick?.invoke(entry.teamId)
+        }
     ) {
         Row(
             modifier = Modifier

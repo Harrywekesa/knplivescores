@@ -50,7 +50,7 @@ class LeaguesViewModel(application: Application) : AndroidViewModel(application)
                 prizes = prizes,
                 startDate = com.google.firebase.Timestamp(java.util.Date(startDate)),
                 endDate = com.google.firebase.Timestamp(java.util.Date(endDate)),
-                isActive = true
+                active = true
             )
             val result = leaguesRepository.createLeague(league)
             if (result.isSuccess) {

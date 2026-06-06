@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -246,14 +248,30 @@ fun PolyScoresApp() {
                 }
 
                 val topScorers by matchesViewModel.topScorers.collectAsState(initial = emptyList())
-                val topScorersWithTeam = topScorers.map { scorer ->
-                    val teamName = teams.find { it.id == scorer.second }?.name ?: "Unknown"
-                    Pair("${scorer.first} ($teamName)", scorer.third)
+                val topAssists by matchesViewModel.topAssists.collectAsState(initial = emptyList())
+                val topYellowCards by matchesViewModel.topYellowCards.collectAsState(initial = emptyList())
+                val topRedCards by matchesViewModel.topRedCards.collectAsState(initial = emptyList())
+                
+                val mapToTeam: (List<com.polyscores.kenya.data.repository.PlayerStatItem>) -> List<com.polyscores.kenya.data.repository.PlayerStatItem> = { list ->
+                    list.map { item ->
+                        val teamName = teams.find { it.id == item.teamId }?.name ?: "Unknown"
+                        item.copy(playerName = "${item.playerName} ($teamName)")
+                    }
                 }
+
                 StandingsScreen(
                     standings = standings,
-                    topScorers = topScorersWithTeam,
+                    topScorers = mapToTeam(topScorers),
+                    topAssists = mapToTeam(topAssists),
+                    topYellowCards = mapToTeam(topYellowCards),
+                    topRedCards = mapToTeam(topRedCards),
                     isLoading = false,
+                    onTeamClick = { teamId ->
+                        navController.navigate("${Screen.TeamDetails}/$teamId")
+                    },
+                    onPlayerClick = { playerId ->
+                        navController.navigate("${Screen.PlayerProfile}/$playerId")
+                    },
                     onBackClick = {
                         navController.popBackStack()
                     }
@@ -283,9 +301,31 @@ fun PolyScoresApp() {
                     TeamDetailsScreen(
                         team = team,
                         players = teamPlayers,
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() },
+                        onPlayerClick = { playerId ->
+                            navController.navigate("${Screen.PlayerProfile}/$playerId")
+                        }
                     )
                 }
+            }
+
+            composable("${Screen.PlayerProfile}/{playerId}") { backStackEntry ->
+                val playerId = backStackEntry.arguments?.getString("playerId") ?: ""
+                var player by remember { mutableStateOf<com.polyscores.kenya.data.model.Player?>(null) }
+                
+                LaunchedEffect(playerId) {
+                    player = teamsViewModel.getPlayerById(playerId)
+                }
+
+                val team = teams.find { it.id == player?.teamId }
+                val events by matchesViewModel.getPlayerEvents(playerId).collectAsState(initial = emptyList())
+
+                com.polyscores.kenya.presentation.ui.screens.teams.PlayerProfileScreen(
+                    player = player,
+                    team = team,
+                    events = events,
+                    onBackClick = { navController.popBackStack() }
+                )
             }
 
             composable(Screen.Settings) {
@@ -361,8 +401,26 @@ fun PolyScoresApp() {
                         onUpdateStatus = { status ->
                             matchesViewModel.updateMatchStatus(match.id, status)
                         },
-                        onUpdateLineups = { homeStart, homeBench, awayStart, awayBench ->
-                            matchesViewModel.updateMatchLineups(match.id, homeStart, homeBench, awayStart, awayBench)
+                        onUpdateLineups = { homeFormation, awayFormation, homeStart, homeBench, awayStart, awayBench, playerUpdates ->
+                            matchesViewModel.updateMatchLineups(
+                                matchId = match.id,
+                                homeFormation = homeFormation,
+                                awayFormation = awayFormation,
+                                homeStartingXI = homeStart,
+                                homeBench = homeBench,
+                                awayStartingXI = awayStart,
+                                awayBench = awayBench,
+                                onSuccess = {
+                                    android.widget.Toast.makeText(context, "Lineups Saved!", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                onError = { error ->
+                                    android.widget.Toast.makeText(context, "Error saving lineups: $error", android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            )
+                            // Bulk update players with new jersey numbers/positions
+                            playerUpdates.forEach { updatedPlayer ->
+                                teamsViewModel.updatePlayer(updatedPlayer)
+                            }
                         },
                         onDeleteMatch = {
                             matchesViewModel.deleteMatch(match.id, onSuccess = {
@@ -560,6 +618,8 @@ fun PolyScoresApp() {
                         awayPlayers = awayPlayers,
                         homeTeam = homeTeam,
                         awayTeam = awayTeam,
+                        onNavigateToTeam = { teamId -> navController.navigate("${Screen.TeamDetails}/$teamId") },
+                        onPlayerClick = { playerId -> navController.navigate("${Screen.PlayerProfile}/$playerId") },
                         onBackClick = { navController.popBackStack() }
                     )
                 }
@@ -712,8 +772,17 @@ fun PolyScoresBottomBar(
     onNavigate: (String) -> Unit
 ) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
+        containerColor = Color.Transparent,
+        tonalElevation = 0.dp,
+        modifier = Modifier
+            .background(
+                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF7B241C), // KitaleMaroon
+                        Color(0xFF511812)  // KitaleMaroonDark
+                    )
+                )
+            )
     ) {
         val items = listOf(
             BottomNavItem(
@@ -759,7 +828,14 @@ fun PolyScoresBottomBar(
                 },
                 selected = currentRoute == item.route,
                 onClick = { onNavigate(item.route) },
-                alwaysShowLabel = true
+                alwaysShowLabel = true,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color(0xFFF1C40F), // KitaleGold for active tab icon
+                    selectedTextColor = Color(0xFFF1C40F), // KitaleGold for active tab text
+                    indicatorColor = Color.White.copy(alpha = 0.15f), // Translucent white selector pill
+                    unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.6f)
+                )
             )
         }
     }
@@ -786,4 +862,5 @@ object Screen {
     const val AdminManageLeagues = "admin_manage_leagues"
     const val AdminStandingsEditor = "admin_standings_editor"
     const val MatchDetails = "match_details"
+    const val PlayerProfile = "player_profile"
 }

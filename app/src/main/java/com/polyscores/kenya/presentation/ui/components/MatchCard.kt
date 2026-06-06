@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -23,6 +24,7 @@ import com.polyscores.kenya.data.model.MatchStatus
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun MatchCard(
@@ -192,6 +194,45 @@ private fun ScoreDisplay(
     val homeScoreColor = if (isTentative && lastScoringTeamId == homeTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     val awayScoreColor = if (isTentative && lastScoringTeamId == awayTeamId) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
 
+    var prevHomeScore by remember { mutableStateOf(homeScore) }
+    var prevAwayScore by remember { mutableStateOf(awayScore) }
+
+    val homeScaleAnim = remember { androidx.compose.animation.core.Animatable(1f) }
+    val homeFlashAnim = remember { androidx.compose.animation.core.Animatable(0f) }
+
+    val awayScaleAnim = remember { androidx.compose.animation.core.Animatable(1f) }
+    val awayFlashAnim = remember { androidx.compose.animation.core.Animatable(0f) }
+
+    LaunchedEffect(homeScore) {
+        if (homeScore > prevHomeScore) {
+            // Flash and pop
+            launch {
+                homeFlashAnim.animateTo(0.6f, animationSpec = androidx.compose.animation.core.tween(150))
+                homeFlashAnim.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(500))
+            }
+            launch {
+                homeScaleAnim.animateTo(1.4f, animationSpec = androidx.compose.animation.core.tween(150))
+                homeScaleAnim.animateTo(1f, animationSpec = androidx.compose.animation.core.spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy))
+            }
+        }
+        prevHomeScore = homeScore
+    }
+
+    LaunchedEffect(awayScore) {
+        if (awayScore > prevAwayScore) {
+            // Flash and pop
+            launch {
+                awayFlashAnim.animateTo(0.6f, animationSpec = androidx.compose.animation.core.tween(150))
+                awayFlashAnim.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(500))
+            }
+            launch {
+                awayScaleAnim.animateTo(1.4f, animationSpec = androidx.compose.animation.core.tween(150))
+                awayScaleAnim.animateTo(1f, animationSpec = androidx.compose.animation.core.spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy))
+            }
+        }
+        prevAwayScore = awayScore
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -199,7 +240,14 @@ private fun ScoreDisplay(
             text = homeScore.toString(),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = homeScoreColor
+            color = homeScoreColor,
+            modifier = Modifier
+                .scale(homeScaleAnim.value)
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = homeFlashAnim.value),
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 4.dp)
         )
         Text(
             text = " - ",
@@ -210,7 +258,14 @@ private fun ScoreDisplay(
             text = awayScore.toString(),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = awayScoreColor
+            color = awayScoreColor,
+            modifier = Modifier
+                .scale(awayScaleAnim.value)
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = awayFlashAnim.value),
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 4.dp)
         )
     }
 }
@@ -231,8 +286,8 @@ private fun TeamBadge(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(8.dp)),
-                placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
-                error = painterResource(id = android.R.drawable.ic_menu_gallery)
+                placeholder = painterResource(id = com.polyscores.kenya.R.drawable.ic_soccer_ball),
+                error = painterResource(id = com.polyscores.kenya.R.drawable.ic_soccer_ball)
             )
         } else {
             Surface(

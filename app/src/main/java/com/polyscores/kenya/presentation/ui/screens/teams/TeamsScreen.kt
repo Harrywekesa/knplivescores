@@ -115,8 +115,8 @@ private fun TeamCard(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(RoundedCornerShape(16.dp)),
-                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
-                    error = painterResource(id = android.R.drawable.ic_menu_gallery)
+                    placeholder = painterResource(id = com.polyscores.kenya.R.drawable.ic_soccer_ball),
+                    error = painterResource(id = com.polyscores.kenya.R.drawable.ic_soccer_ball)
                 )
             } else {
                 Surface(

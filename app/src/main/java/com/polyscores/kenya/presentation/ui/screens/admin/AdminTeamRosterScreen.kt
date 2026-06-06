@@ -235,7 +235,7 @@ fun AdminPlayerListItem(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (player.isCaptain) {
+                if (player.captain) {
                     Surface(
                         color = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(4.dp),

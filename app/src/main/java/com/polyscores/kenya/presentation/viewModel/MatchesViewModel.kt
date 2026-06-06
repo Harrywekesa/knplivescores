@@ -7,14 +7,20 @@ import com.polyscores.kenya.data.model.Match
 import com.polyscores.kenya.data.model.MatchEvent
 import com.polyscores.kenya.data.model.MatchEventType
 import com.polyscores.kenya.data.model.MatchStatus
-import com.polyscores.kenya.data.preferences.PreferencesManager
+import com.polyscores.kenya.data.repository.PlayerStatItem
 import com.polyscores.kenya.data.repository.MatchesRepository
+import com.polyscores.kenya.data.repository.StandingsRepository
+import com.polyscores.kenya.data.repository.TeamsRepository
+import com.polyscores.kenya.data.repository.LeaguesRepository
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.polyscores.kenya.data.preferences.PreferencesManager
 
 class MatchesViewModel(
     application: Application,
@@ -24,8 +30,18 @@ class MatchesViewModel(
 
     constructor(application: Application) : this(application, MatchesRepository(), PreferencesManager(application))
 
+    val userPreferences: StateFlow<com.polyscores.kenya.data.preferences.UserPreferences> = preferencesManager.userPreferencesFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = com.polyscores.kenya.data.preferences.UserPreferences()
+        )
+
     private val _latestGoalEvent = MutableSharedFlow<Pair<Match, Boolean>>() // Match and isHomeScored
     val latestGoalEvent = _latestGoalEvent.asSharedFlow()
+
+    private val _latestMatchEvent = MutableSharedFlow<Pair<Match, MatchEvent>>()
+    val latestMatchEvent = _latestMatchEvent.asSharedFlow()
 
     private var previousMatches: List<Match>? = null
 
@@ -62,7 +78,7 @@ class MatchesViewModel(
                         if (timeDiffMinutes in 0..10) {
                             notifiedMatches.add(match.id)
                             
-                            val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
+                            val prefs = userPreferences.value
                             if (prefs.notificationsEnabled) {
                                 com.polyscores.kenya.utils.NotificationHelper(getApplication()).showMatchNotification(
                                     title = "Match Starting Soon! ⏳",
@@ -90,7 +106,7 @@ class MatchesViewModel(
                     
                     if (homeScored || awayScored) {
                         viewModelScope.launch {
-                            val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
+                            val prefs = userPreferences.value
                             if (prefs.notificationsEnabled) {
                                 _latestGoalEvent.emit(Pair(currentMatch, homeScored))
                                 
@@ -135,8 +151,12 @@ class MatchesViewModel(
 
             matchesRepository.updateMatchStatus(matchId, newStatus, setStartTime, setSecondHalfStartTime)
 
+            if (newStatus == MatchStatus.FULLTIME && currentMatch != null) {
+                recalculateStandingsForLeague(currentMatch.leagueId)
+            }
+
             if (currentMatch != null && (newStatus == MatchStatus.LIVE || newStatus == MatchStatus.HALFTIME || newStatus == MatchStatus.SECOND_HALF || newStatus == MatchStatus.FULLTIME)) {
-                val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
+                val prefs = userPreferences.value
                 if (prefs.notificationsEnabled) {
                     com.polyscores.kenya.utils.NotificationHelper(getApplication()).showMatchStatusNotification(
                         matchHome = currentMatch.homeTeamName,
@@ -152,14 +172,26 @@ class MatchesViewModel(
 
     fun deleteMatch(matchId: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         viewModelScope.launch {
+            val match = matchesRepository.getMatchById(matchId)
             val success = matchesRepository.deleteMatch(matchId)
-            if (success) onSuccess() else onError("Failed to delete match")
+            if (success) {
+                if (match != null && match.matchStatus == MatchStatus.FULLTIME) {
+                    recalculateStandingsForLeague(match.leagueId)
+                }
+                onSuccess()
+            } else {
+                onError("Failed to delete match")
+            }
         }
     }
 
     fun updateMatchScore(matchId: String, homeScore: Int, awayScore: Int) {
         viewModelScope.launch {
             matchesRepository.updateMatchScore(matchId, homeScore, awayScore)
+            val currentMatch = matches.value.find { it.id == matchId }
+            if (currentMatch != null && currentMatch.matchStatus == MatchStatus.FULLTIME) {
+                recalculateStandingsForLeague(currentMatch.leagueId)
+            }
         }
     }
 
@@ -228,6 +260,9 @@ class MatchesViewModel(
                     val scoringTeamId = if (scoreForHome) currentMatch.homeTeamId else currentMatch.awayTeamId
                     
                     matchesRepository.updateMatchScore(currentMatch.id, newHomeScore, newAwayScore, scoringTeamId)
+                    if (currentMatch.matchStatus == MatchStatus.FULLTIME) {
+                        recalculateStandingsForLeague(currentMatch.leagueId)
+                    }
                 }
 
                 // Handle Substitutions and Red Cards (Remove/Add to StartingXI)
@@ -253,10 +288,20 @@ class MatchesViewModel(
                         }
                     }
 
-                    matchesRepository.updateMatchLineups(currentMatch.id, hStart, hBench, aStart, aBench)
+                    matchesRepository.updateMatchLineups(
+                        matchId = currentMatch.id, 
+                        homeFormation = currentMatch.homeFormation,
+                        awayFormation = currentMatch.awayFormation,
+                        homeStartingXI = hStart, 
+                        homeBench = hBench, 
+                        awayStartingXI = aStart, 
+                        awayBench = aBench
+                    )
                 }
 
-                val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
+                _latestMatchEvent.emit(Pair(currentMatch, actualEvent))
+
+                val prefs = userPreferences.value
                 if (prefs.notificationsEnabled) {
                     com.polyscores.kenya.utils.NotificationHelper(getApplication()).showEventNotification(
                         matchHome = currentMatch.homeTeamName,
@@ -270,37 +315,76 @@ class MatchesViewModel(
         }
     }
 
-    val topScorers: StateFlow<List<Triple<String, String, Int>>> = matchesRepository.getTopScorers()
+    val topScorers: StateFlow<List<com.polyscores.kenya.data.repository.PlayerStatItem>> = matchesRepository.getTopScorers()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
+    val topAssists: StateFlow<List<com.polyscores.kenya.data.repository.PlayerStatItem>> = matchesRepository.getTopAssists()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val topYellowCards: StateFlow<List<com.polyscores.kenya.data.repository.PlayerStatItem>> = matchesRepository.getTopYellowCards()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val topRedCards: StateFlow<List<com.polyscores.kenya.data.repository.PlayerStatItem>> = matchesRepository.getTopRedCards()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun getPlayerEvents(playerId: String): Flow<List<MatchEvent>> {
+        return matchesRepository.getPlayerEvents(playerId)
+    }
+
     fun updateMatchLineups(
         matchId: String,
+        homeFormation: String,
+        awayFormation: String,
         homeStartingXI: List<String>,
         homeBench: List<String>,
         awayStartingXI: List<String>,
-        awayBench: List<String>
+        awayBench: List<String>,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
-            matchesRepository.updateMatchLineups(
+            val result = matchesRepository.updateMatchLineups(
                 matchId,
+                homeFormation,
+                awayFormation,
                 homeStartingXI,
                 homeBench,
                 awayStartingXI,
                 awayBench
             )
-            val currentMatch = matches.value.find { it.id == matchId }
-            if (currentMatch != null) {
-                val prefs = preferencesManager.userPreferencesFlow.stateIn(viewModelScope).value
-                if (prefs.notificationsEnabled) {
-                    com.polyscores.kenya.utils.NotificationHelper(getApplication()).showLineupNotification(
-                        title = "Lineups Released! 📋",
-                        body = "${currentMatch.homeTeamName} vs ${currentMatch.awayTeamName} starting XI is out now!"
-                    )
+            if (result.isSuccess) {
+                val currentMatch = matches.value.find { it.id == matchId }
+                if (currentMatch != null) {
+                    val prefs = userPreferences.value
+                    if (prefs.notificationsEnabled) {
+                        com.polyscores.kenya.utils.NotificationHelper(getApplication()).showLineupNotification(
+                            title = "Lineups Released! 📋",
+                            body = "${currentMatch.homeTeamName} vs ${currentMatch.awayTeamName} starting XI is out now!"
+                        )
+                    }
                 }
+                onSuccess()
+            } else {
+                val exception = result.exceptionOrNull()
+                val errorMsg = exception?.message ?: "Unknown database error"
+                android.util.Log.e("MatchesViewModel", "Failed to save match lineups: $errorMsg", exception)
+                onError(errorMsg)
             }
         }
     }
@@ -347,5 +431,23 @@ class MatchesViewModel(
 
     fun getMatchEvents(matchId: String): kotlinx.coroutines.flow.Flow<List<MatchEvent>> {
         return matchesRepository.getMatchEvents(matchId)
+    }
+
+    private suspend fun recalculateStandingsForLeague(leagueId: String) {
+        try {
+            val standingsRepository = StandingsRepository()
+            val matchesRepo = MatchesRepository()
+            val teamsRepo = TeamsRepository()
+            
+            val leagueMatches = matchesRepo.getMatchesByLeagueOnce(leagueId)
+            val allTeams = teamsRepo.getAllTeamsOnce()
+            
+            val league = LeaguesRepository().getLeagueById(leagueId)
+            val leagueTeams = allTeams.filter { league?.teamIds?.contains(it.id) == true }
+            
+            standingsRepository.calculateAndSaveStandings(leagueId, leagueMatches, leagueTeams)
+        } catch (e: Exception) {
+            android.util.Log.e("MatchesViewModel", "Error recalculating standings", e)
+        }
     }
 }

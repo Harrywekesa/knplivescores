@@ -12,6 +12,9 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.StateFlow
+
+data class PlayerStatItem(val playerId: String, val playerName: String, val teamId: String, val statCount: Int)
 
 class MatchesRepository {
 
@@ -87,6 +90,18 @@ class MatchesRepository {
             }
 
         awaitClose { listener.remove() }
+    }
+
+    /**
+     * Get matches by league ID once
+     */
+    suspend fun getMatchesByLeagueOnce(leagueId: String): List<Match> {
+        return try {
+            val snapshot = matchesCollection.whereEqualTo("leagueId", leagueId).get().await()
+            snapshot.documents.mapNotNull { it.toObject(Match::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     /**
@@ -249,6 +264,8 @@ class MatchesRepository {
      */
     suspend fun updateMatchLineups(
         matchId: String,
+        homeFormation: String,
+        awayFormation: String,
         homeStartingXI: List<String>,
         homeBench: List<String>,
         awayStartingXI: List<String>,
@@ -258,6 +275,8 @@ class MatchesRepository {
             matchesCollection.document(matchId)
                 .update(
                     mapOf(
+                        "homeFormation" to homeFormation,
+                        "awayFormation" to awayFormation,
                         "homeStartingXI" to homeStartingXI,
                         "homeBench" to homeBench,
                         "awayStartingXI" to awayStartingXI,
@@ -314,12 +333,86 @@ class MatchesRepository {
     /**
      * Get top scorers
      */
-    fun getTopScorers(): Flow<List<Triple<String, String, Int>>> = callbackFlow {
+    fun getTopScorers(): Flow<List<PlayerStatItem>> = callbackFlow {
         val listener = eventsCollection
             .whereIn("eventType", listOf(MatchEventType.GOAL.name, MatchEventType.PENALTY_GOAL.name))
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    android.util.Log.e("MatchesRepository", "Error getTopScorers", error)
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val events = snapshot?.documents?.mapNotNull { doc -> doc.toObject(MatchEvent::class.java) } ?: emptyList()
+                val topScorers = events.groupBy { Triple(it.playerId, it.playerName, it.teamId) }
+                    .map { PlayerStatItem(it.key.first, it.key.second, it.key.third, it.value.size) }
+                    .sortedByDescending { it.statCount }.take(10)
+                trySend(topScorers)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun getTopAssists(): Flow<List<PlayerStatItem>> = callbackFlow {
+        val listener = eventsCollection
+            .whereNotEqualTo("assistPlayerId", "")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val events = snapshot?.documents?.mapNotNull { doc -> doc.toObject(MatchEvent::class.java) } ?: emptyList()
+                val topAssists = events.groupBy { Triple(it.assistPlayerId, it.assistPlayerName, it.teamId) }
+                    .map { PlayerStatItem(it.key.first, it.key.second, it.key.third, it.value.size) }
+                    .sortedByDescending { it.statCount }.take(10)
+                trySend(topAssists)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun getTopYellowCards(): Flow<List<PlayerStatItem>> = callbackFlow {
+        val listener = eventsCollection
+            .whereEqualTo("eventType", MatchEventType.YELLOW_CARD.name)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val events = snapshot?.documents?.mapNotNull { doc -> doc.toObject(MatchEvent::class.java) } ?: emptyList()
+                val topYellows = events.groupBy { Triple(it.playerId, it.playerName, it.teamId) }
+                    .map { PlayerStatItem(it.key.first, it.key.second, it.key.third, it.value.size) }
+                    .sortedByDescending { it.statCount }.take(10)
+                trySend(topYellows)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun getTopRedCards(): Flow<List<PlayerStatItem>> = callbackFlow {
+        val listener = eventsCollection
+            .whereEqualTo("eventType", MatchEventType.RED_CARD.name)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val events = snapshot?.documents?.mapNotNull { doc -> doc.toObject(MatchEvent::class.java) } ?: emptyList()
+                val topReds = events.groupBy { Triple(it.playerId, it.playerName, it.teamId) }
+                    .map { PlayerStatItem(it.key.first, it.key.second, it.key.third, it.value.size) }
+                    .sortedByDescending { it.statCount }.take(10)
+                trySend(topReds)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    /**
+     * Get all events for a specific player
+     */
+    fun getPlayerEvents(playerId: String): Flow<List<MatchEvent>> = callbackFlow {
+        val listener = eventsCollection
+            .whereEqualTo("playerId", playerId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
@@ -328,16 +421,8 @@ class MatchesRepository {
                     doc.toObject(MatchEvent::class.java)
                 } ?: emptyList()
 
-                // Group by playerName and teamId
-                val topScorers = events
-                    .groupBy { Pair(it.playerName, it.teamId) }
-                    .map { Triple(it.key.first, it.key.second, it.value.size) }
-                    .sortedByDescending { it.third }
-                    .take(10) // Top 10
-
-                trySend(topScorers)
+                trySend(events)
             }
-
         awaitClose { listener.remove() }
     }
 }

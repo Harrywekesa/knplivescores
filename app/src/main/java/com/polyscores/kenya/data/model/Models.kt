@@ -21,7 +21,7 @@ data class Team(
     val coachName: String = "",
     val contactPhone: String = "",
     val createdAt: Timestamp = Timestamp.now(),
-    val isActive: Boolean = true,
+    val active: Boolean = true,
     val formation: String = "4-3-3"
 )
 
@@ -36,7 +36,7 @@ data class Player(
     val position: PlayerPosition = PlayerPosition.FORWARD,
     val age: Int = 0,
     val phoneNumber: String = "",
-    val isCaptain: Boolean = false,
+    val captain: Boolean = false,
     val photoUrl: String = "",
     val createdAt: Timestamp = Timestamp.now()
 )
@@ -57,7 +57,7 @@ data class League(
     val prizes: String = "",
     val startDate: Timestamp = Timestamp.now(),
     val endDate: Timestamp = Timestamp.now(),
-    val isActive: Boolean = true,
+    val active: Boolean = true,
     val format: LeagueFormat = LeagueFormat.LEAGUE,
     val teamIds: List<String> = emptyList(),
     val createdAt: Timestamp = Timestamp.now()
@@ -109,7 +109,9 @@ data class Match(
     val homeBench: List<String> = emptyList(),
     val awayStartingXI: List<String> = emptyList(),
     val awayBench: List<String> = emptyList(),
-    val lastUpdated: Timestamp = Timestamp.now(),
+    val homeFormation: String = "4-3-3",
+    val awayFormation: String = "4-3-3",
+    val lastUpdated: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),
     val refereeName: String = "",
     val lastScoringTeamId: String? = null
 )
@@ -197,7 +199,7 @@ data class AdminUser(
     val phone: String = "",
     val createdAt: Timestamp = Timestamp.now(),
     val lastLogin: Timestamp? = null,
-    val isActive: Boolean = true
+    val active: Boolean = true
 )
 
 enum class AdminRole {

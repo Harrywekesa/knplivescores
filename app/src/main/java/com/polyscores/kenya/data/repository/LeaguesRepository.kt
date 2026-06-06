@@ -71,4 +71,15 @@ class LeaguesRepository {
             Result.failure(e)
         }
     }
+
+    /**
+     * Get a single league by ID
+     */
+    suspend fun getLeagueById(leagueId: String): League? {
+        return try {
+            leaguesCollection.document(leagueId).get().await().toObject(League::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

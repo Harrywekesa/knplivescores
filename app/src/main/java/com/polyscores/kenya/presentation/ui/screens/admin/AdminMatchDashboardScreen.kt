@@ -27,7 +27,7 @@ fun AdminMatchDashboardScreen(
     homePlayers: List<Player>,
     awayPlayers: List<Player>,
     onUpdateStatus: (MatchStatus) -> Unit,
-    onUpdateLineups: (List<String>, List<String>, List<String>, List<String>) -> Unit,
+    onUpdateLineups: (String, String, List<String>, List<String>, List<String>, List<String>, List<Player>) -> Unit,
     onDeleteMatch: () -> Unit,
     onAddEvent: (MatchEventType, String, String, String, Int, Boolean) -> Unit,
     onUpdateAnalytics: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Unit,
@@ -186,32 +186,42 @@ fun LineupBuilder(
     match: Match,
     homePlayers: List<Player>,
     awayPlayers: List<Player>,
-    onSaveLineups: (List<String>, List<String>, List<String>, List<String>) -> Unit,
+    onSaveLineups: (String, String, List<String>, List<String>, List<String>, List<String>, List<Player>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var selectedTeamTab by remember { mutableStateOf(0) }
     
-    // Maps of Player ID to Role (0 = Out, 1 = Start, 2 = Bench)
-    val homeLineupMap = remember { mutableStateMapOf<String, Int>().apply {
-        homePlayers.forEach { player ->
-            put(player.id, when {
-                match.homeStartingXI.contains(player.id) -> 1
-                match.homeBench.contains(player.id) -> 2
-                else -> 0
-            })
-        }
-    } }
+    var homeFormation by remember { mutableStateOf(match.homeFormation) }
+    var awayFormation by remember { mutableStateOf(match.awayFormation) }
     
-    val awayLineupMap = remember { mutableStateMapOf<String, Int>().apply {
-        awayPlayers.forEach { player ->
-            put(player.id, when {
-                match.awayStartingXI.contains(player.id) -> 1
-                match.awayBench.contains(player.id) -> 2
-                else -> 0
-            })
+    // Hold player updates (like new jersey numbers)
+    val playerUpdates = remember { mutableStateMapOf<String, Player>() }
+    
+    // Maps of Player ID to Role (0 = Out, 1 = Start, 2 = Bench)
+    val homeLineupMap = remember(homePlayers, match.homeStartingXI, match.homeBench) {
+        mutableStateMapOf<String, Int>().apply {
+            homePlayers.forEach { player ->
+                put(player.id, when {
+                    match.homeStartingXI.contains(player.id) -> 1
+                    match.homeBench.contains(player.id) -> 2
+                    else -> 0
+                })
+            }
         }
-    } }
+    }
+    
+    val awayLineupMap = remember(awayPlayers, match.awayStartingXI, match.awayBench) {
+        mutableStateMapOf<String, Int>().apply {
+            awayPlayers.forEach { player ->
+                put(player.id, when {
+                    match.awayStartingXI.contains(player.id) -> 1
+                    match.awayBench.contains(player.id) -> 2
+                    else -> 0
+                })
+            }
+        }
+    }
 
     Column(modifier = modifier) {
         TabRow(selectedTabIndex = selectedTeamTab) {
@@ -225,6 +235,19 @@ fun LineupBuilder(
 
         val players = if (selectedTeamTab == 0) homePlayers else awayPlayers
         val lineupMap = if (selectedTeamTab == 0) homeLineupMap else awayLineupMap
+        val currentFormation = if (selectedTeamTab == 0) homeFormation else awayFormation
+        val onFormationChange = { newFormation: String -> 
+            if (selectedTeamTab == 0) homeFormation = newFormation else awayFormation = newFormation
+        }
+
+        // Formation Input
+        OutlinedTextField(
+            value = currentFormation,
+            onValueChange = onFormationChange,
+            label = { Text("Formation (e.g., 4-3-3)") },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            singleLine = true
+        )
 
         androidx.compose.foundation.lazy.LazyColumn(
             modifier = Modifier.weight(1f),
@@ -235,8 +258,24 @@ fun LineupBuilder(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val currentPlayer = playerUpdates[player.id] ?: player
+                    
+                    OutlinedTextField(
+                        value = if (currentPlayer.jerseyNumber > 0) currentPlayer.jerseyNumber.toString() else "",
+                        onValueChange = { newVal ->
+                            val newNum = newVal.filter { it.isDigit() }.toIntOrNull() ?: 0
+                            playerUpdates[player.id] = currentPlayer.copy(jerseyNumber = newNum)
+                        },
+                        modifier = Modifier.width(50.dp).height(50.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
                     Text(
-                        text = "${player.jerseyNumber}. ${player.name}",
+                        text = currentPlayer.name,
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -284,8 +323,7 @@ fun LineupBuilder(
                     return@Button
                 }
                 
-                onSaveLineups(hStart, hBench, aStart, aBench)
-                android.widget.Toast.makeText(context, "Lineups Saved!", android.widget.Toast.LENGTH_SHORT).show()
+                onSaveLineups(homeFormation, awayFormation, hStart, hBench, aStart, aBench, playerUpdates.values.toList())
             },
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         ) {
@@ -307,7 +345,20 @@ fun MatchEventBuilder(
     var expandedEventType by remember { mutableStateOf(false) }
     var selectedPlayer by remember { mutableStateOf<Player?>(null) }
     var expandedPlayer by remember { mutableStateOf(false) }
+    
+    // For combined substitution view
+    var selectedPlayerOut by remember { mutableStateOf<Player?>(null) }
+    var selectedPlayerIn by remember { mutableStateOf<Player?>(null) }
+    var expandedPlayerOut by remember { mutableStateOf(false) }
+    var expandedPlayerIn by remember { mutableStateOf(false) }
+    
     var minuteString by remember { mutableStateOf("") }
+
+    LaunchedEffect(selectedEventType, isHomeTeam) {
+        selectedPlayer = null
+        selectedPlayerOut = null
+        selectedPlayerIn = null
+    }
 
     val currentPlayers = if (isHomeTeam) {
         if (selectedEventType == MatchEventType.SUBSTITUTION_IN) {
@@ -323,6 +374,18 @@ fun MatchEventBuilder(
         }
     }
 
+    val currentStartingPlayers = if (isHomeTeam) {
+        homePlayers.filter { match.homeStartingXI.contains(it.id) }
+    } else {
+        awayPlayers.filter { match.awayStartingXI.contains(it.id) }
+    }
+
+    val currentBenchPlayers = if (isHomeTeam) {
+        homePlayers.filter { match.homeBench.contains(it.id) }
+    } else {
+        awayPlayers.filter { match.awayBench.contains(it.id) }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
@@ -332,10 +395,10 @@ fun MatchEventBuilder(
             
             // Team Selection
             TabRow(selectedTabIndex = if (isHomeTeam) 0 else 1) {
-                Tab(selected = isHomeTeam, onClick = { isHomeTeam = true; selectedPlayer = null }) {
+                Tab(selected = isHomeTeam, onClick = { isHomeTeam = true }) {
                     Text(match.homeTeamName, modifier = Modifier.padding(8.dp))
                 }
-                Tab(selected = !isHomeTeam, onClick = { isHomeTeam = false; selectedPlayer = null }) {
+                Tab(selected = !isHomeTeam, onClick = { isHomeTeam = false }) {
                     Text(match.awayTeamName, modifier = Modifier.padding(8.dp))
                 }
             }
@@ -345,8 +408,9 @@ fun MatchEventBuilder(
                 expanded = expandedEventType,
                 onExpandedChange = { expandedEventType = it }
             ) {
+                val displayName = if (selectedEventType == MatchEventType.SUBSTITUTION_IN) "SUBSTITUTION" else selectedEventType.name
                 OutlinedTextField(
-                    value = selectedEventType.name,
+                    value = displayName,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Event Type") },
@@ -357,37 +421,103 @@ fun MatchEventBuilder(
                     expanded = expandedEventType,
                     onDismissRequest = { expandedEventType = false }
                 ) {
-                    MatchEventType.entries.forEach { type ->
-                        DropdownMenuItem(
-                            text = { Text(type.name) },
-                            onClick = { selectedEventType = type; expandedEventType = false }
-                        )
-                    }
+                    MatchEventType.entries
+                        .filter { it != MatchEventType.SUBSTITUTION_OUT }
+                        .forEach { type ->
+                            val typeLabel = if (type == MatchEventType.SUBSTITUTION_IN) "SUBSTITUTION" else type.name
+                            DropdownMenuItem(
+                                text = { Text(typeLabel) },
+                                onClick = { selectedEventType = type; expandedEventType = false }
+                            )
+                        }
                 }
             }
 
             // Player Selection
-            ExposedDropdownMenuBox(
-                expanded = expandedPlayer,
-                onExpandedChange = { expandedPlayer = it }
-            ) {
-                OutlinedTextField(
-                    value = selectedPlayer?.name ?: "Select Player",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Player") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPlayer) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
-                )
-                ExposedDropdownMenu(
-                    expanded = expandedPlayer,
-                    onDismissRequest = { expandedPlayer = false }
+            if (selectedEventType == MatchEventType.SUBSTITUTION_IN) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    currentPlayers.forEach { player ->
-                        DropdownMenuItem(
-                            text = { Text("${player.jerseyNumber}. ${player.name}") },
-                            onClick = { selectedPlayer = player; expandedPlayer = false }
-                        )
+                    // Player Out (Starting Player)
+                    Box(modifier = Modifier.weight(1f)) {
+                        ExposedDropdownMenuBox(
+                            expanded = expandedPlayerOut,
+                            onExpandedChange = { expandedPlayerOut = it }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedPlayerOut?.name ?: "Player Out",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Player Out") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPlayerOut) },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedPlayerOut,
+                                onDismissRequest = { expandedPlayerOut = false }
+                            ) {
+                                currentStartingPlayers.forEach { player ->
+                                    DropdownMenuItem(
+                                        text = { Text("${player.jerseyNumber}. ${player.name}") },
+                                        onClick = { selectedPlayerOut = player; expandedPlayerOut = false }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Player In (Bench Player)
+                    Box(modifier = Modifier.weight(1f)) {
+                        ExposedDropdownMenuBox(
+                            expanded = expandedPlayerIn,
+                            onExpandedChange = { expandedPlayerIn = it }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedPlayerIn?.name ?: "Player In",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Player In") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPlayerIn) },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedPlayerIn,
+                                onDismissRequest = { expandedPlayerIn = false }
+                            ) {
+                                currentBenchPlayers.forEach { player ->
+                                    DropdownMenuItem(
+                                        text = { Text("${player.jerseyNumber}. ${player.name}") },
+                                        onClick = { selectedPlayerIn = player; expandedPlayerIn = false }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                ExposedDropdownMenuBox(
+                    expanded = expandedPlayer,
+                    onExpandedChange = { expandedPlayer = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedPlayer?.name ?: "Select Player",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Player") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPlayer) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedPlayer,
+                        onDismissRequest = { expandedPlayer = false }
+                    ) {
+                        currentPlayers.forEach { player ->
+                            DropdownMenuItem(
+                                text = { Text("${player.jerseyNumber}. ${player.name}") },
+                                onClick = { selectedPlayer = player; expandedPlayer = false }
+                            )
+                        }
                     }
                 }
             }
@@ -402,26 +532,60 @@ fun MatchEventBuilder(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            val isSaveEnabled = if (selectedEventType == MatchEventType.SUBSTITUTION_IN) {
+                selectedPlayerOut != null && selectedPlayerIn != null
+            } else {
+                selectedPlayer != null
+            }
+
             Button(
                 onClick = {
-                    if (selectedPlayer != null) {
-                        val teamId = if (isHomeTeam) match.homeTeamId else match.awayTeamId
-                        val finalMinute = minuteString.toIntOrNull() ?: calculateCurrentMatchMinute(match)
-                        onSaveEvent(
-                            selectedEventType,
-                            teamId,
-                            selectedPlayer!!.id,
-                            selectedPlayer!!.name,
-                            finalMinute,
-                            isHomeTeam
-                        )
-                        // Reset form
-                        minuteString = ""
-                        selectedPlayer = null
+                    val teamId = if (isHomeTeam) match.homeTeamId else match.awayTeamId
+                    val finalMinute = minuteString.toIntOrNull() ?: calculateCurrentMatchMinute(match)
+                    
+                    if (selectedEventType == MatchEventType.SUBSTITUTION_IN) {
+                        if (selectedPlayerOut != null && selectedPlayerIn != null) {
+                            // 1. Save Sub Out Event
+                            onSaveEvent(
+                                MatchEventType.SUBSTITUTION_OUT,
+                                teamId,
+                                selectedPlayerOut!!.id,
+                                selectedPlayerOut!!.name,
+                                finalMinute,
+                                isHomeTeam
+                            )
+                            // 2. Save Sub In Event
+                            onSaveEvent(
+                                MatchEventType.SUBSTITUTION_IN,
+                                teamId,
+                                selectedPlayerIn!!.id,
+                                selectedPlayerIn!!.name,
+                                finalMinute,
+                                isHomeTeam
+                            )
+                            // Reset
+                            selectedPlayerOut = null
+                            selectedPlayerIn = null
+                            minuteString = ""
+                        }
+                    } else {
+                        if (selectedPlayer != null) {
+                            onSaveEvent(
+                                selectedEventType,
+                                teamId,
+                                selectedPlayer!!.id,
+                                selectedPlayer!!.name,
+                                finalMinute,
+                                isHomeTeam
+                            )
+                            // Reset
+                            selectedPlayer = null
+                            minuteString = ""
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = selectedPlayer != null
+                enabled = isSaveEnabled
             ) {
                 Text("Save Event")
             }

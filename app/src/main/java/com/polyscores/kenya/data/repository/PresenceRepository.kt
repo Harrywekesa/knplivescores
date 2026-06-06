@@ -38,12 +38,22 @@ class PresenceRepository {
         })
     }
 
+    private var isTracking = false
+    private var activeListener: ValueEventListener? = null
+    private var currentDeviceId: String? = null
+
     fun startPresenceTracking(deviceId: String) {
         if (deviceId.isBlank()) return
-        
+        if (isTracking && currentDeviceId == deviceId) return // Already tracking this device
+
+        // If we were tracking another device ID, clean up first
+        stopPresenceTracking()
+
+        currentDeviceId = deviceId
+        isTracking = true
         val myConnectionsRef = presenceRef.child(deviceId)
 
-        connectedRef.addValueEventListener(object : ValueEventListener {
+        val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val connected = snapshot.getValue(Boolean::class.java) ?: false
                 if (connected) {
@@ -57,6 +67,21 @@ class PresenceRepository {
             }
 
             override fun onCancelled(error: DatabaseError) {}
-        })
+        }
+
+        activeListener = listener
+        connectedRef.addValueEventListener(listener)
+    }
+
+    fun stopPresenceTracking() {
+        activeListener?.let {
+            connectedRef.removeEventListener(it)
+        }
+        currentDeviceId?.let { deviceId ->
+            presenceRef.child(deviceId).child("online").setValue(false)
+        }
+        activeListener = null
+        currentDeviceId = null
+        isTracking = false
     }
 }

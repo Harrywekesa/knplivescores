@@ -31,7 +31,7 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
                 department = department,
                 coachName = coach,
                 formation = formation,
-                isActive = true
+                active = true
             )
             val result = teamsRepository.createTeam(team)
             if (result.isSuccess) {
@@ -50,6 +50,10 @@ class TeamsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getTeamPlayers(teamId: String): Flow<List<Player>> {
         return teamsRepository.getTeamPlayers(teamId)
+    }
+
+    suspend fun getPlayerById(playerId: String): Player? {
+        return teamsRepository.getPlayerById(playerId)
     }
 
     fun createPlayer(

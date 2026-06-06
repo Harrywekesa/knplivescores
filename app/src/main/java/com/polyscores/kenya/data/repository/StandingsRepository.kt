@@ -115,9 +115,15 @@ class StandingsRepository {
                 entry.copy(position = index + 1)
             }
 
-        // Save to Firestore
-        saveStandings(leagueId, standings)
+        return standings
+    }
 
+    /**
+     * Calculate and save standings to Firestore
+     */
+    suspend fun calculateAndSaveStandings(leagueId: String, matches: List<Match>, leagueTeams: List<com.polyscores.kenya.data.model.Team>): List<StandingsEntry> {
+        val standings = calculateStandings(leagueId, matches, leagueTeams)
+        saveStandings(leagueId, standings)
         return standings
     }
 

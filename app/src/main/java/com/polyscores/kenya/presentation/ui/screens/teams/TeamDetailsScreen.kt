@@ -1,5 +1,6 @@
 package com.polyscores.kenya.presentation.ui.screens.teams
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,7 +28,8 @@ import com.polyscores.kenya.presentation.ui.components.PolyScoresTopBar
 fun TeamDetailsScreen(
     team: Team,
     players: List<Player>,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onPlayerClick: (String) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -116,9 +118,54 @@ fun TeamDetailsScreen(
                     contentPadding = PaddingValues(bottom = 80.dp) // space for FAB
                 ) {
                     items(players) { player ->
-                        PlayerListItem(
-                            player = player
+                        ListItem(
+                            modifier = Modifier.clickable { onPlayerClick(player.id) },
+                            headlineContent = { Text(player.name, fontWeight = FontWeight.Bold) },
+                            supportingContent = { Text("${player.position.name} • Age ${player.age}") },
+                            leadingContent = {
+                                Surface(
+                                    modifier = Modifier.size(40.dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        if (player.jerseyNumber > 0) {
+                                            Text(
+                                                text = player.jerseyNumber.toString(),
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (player.captain) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = RoundedCornerShape(4.dp),
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        ) {
+                                            Text(
+                                                text = "C",
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         )
+                        HorizontalDivider()
                     }
                 }
             }
@@ -158,7 +205,7 @@ fun PlayerListItem(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (player.isCaptain) {
+                if (player.captain) {
                     Surface(
                         color = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(4.dp),

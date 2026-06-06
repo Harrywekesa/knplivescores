@@ -1,6 +1,7 @@
 package com.polyscores.kenya.presentation.ui.screens.matches
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,8 +18,10 @@ import com.polyscores.kenya.data.model.MatchStatus
 import com.polyscores.kenya.data.model.MatchEvent
 import com.polyscores.kenya.data.model.Player
 import com.polyscores.kenya.data.model.Team
+import com.polyscores.kenya.data.model.MatchEventType
 import com.polyscores.kenya.presentation.ui.components.PolyScoresTopBar
 
+import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
@@ -35,8 +38,10 @@ fun MatchDetailsScreen(
     events: List<MatchEvent>,
     homePlayers: List<Player>,
     awayPlayers: List<Player>,
-    homeTeam: Team?,
-    awayTeam: Team?,
+    homeTeam: com.polyscores.kenya.data.model.Team?,
+    awayTeam: com.polyscores.kenya.data.model.Team?,
+    onNavigateToTeam: (String) -> Unit,
+    onPlayerClick: (String) -> Unit = {},
     onBackClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -93,11 +98,26 @@ fun MatchDetailsScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(match.homeTeamName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onNavigateToTeam(match.homeTeamId) }
+                                .padding(8.dp)
+                        ) {
+                            if (match.homeTeamLogo.isNotEmpty()) {
+                                AsyncImage(
+                                    model = match.homeTeamLogo,
+                                    contentDescription = "Home Team Logo",
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                            Text(match.homeTeamName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
                         
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             val now = System.currentTimeMillis()
@@ -148,15 +168,30 @@ fun MatchDetailsScreen(
                             }
                         }
                         
-                        Text(match.awayTeamName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onNavigateToTeam(match.awayTeamId) }
+                                .padding(8.dp)
+                        ) {
+                            if (match.awayTeamLogo.isNotEmpty()) {
+                                coil.compose.AsyncImage(
+                                    model = match.awayTeamLogo,
+                                    contentDescription = "Away Team Logo",
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                            Text(match.awayTeamName, style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                        }
                     }
 
                     val importantEvents = events.filter { 
-                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.GOAL || 
-                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.PENALTY_GOAL || 
-                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.OWN_GOAL || 
-                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.YELLOW_CARD || 
-                        it.eventType == com.polyscores.kenya.data.model.MatchEventType.RED_CARD 
+                        it.eventType == MatchEventType.GOAL || 
+                        it.eventType == MatchEventType.PENALTY_GOAL || 
+                        it.eventType == MatchEventType.OWN_GOAL || 
+                        it.eventType == MatchEventType.YELLOW_CARD || 
+                        it.eventType == MatchEventType.RED_CARD 
                     }
                     if (importantEvents.isNotEmpty()) {
                         Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
@@ -167,11 +202,11 @@ fun MatchDetailsScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 importantEvents.filter { it.teamId == match.homeTeamId }.forEach { event ->
                                     val icon = when (event.eventType) {
-                                        com.polyscores.kenya.data.model.MatchEventType.GOAL -> "⚽"
-                                        com.polyscores.kenya.data.model.MatchEventType.PENALTY_GOAL -> "⚽ (P)"
-                                        com.polyscores.kenya.data.model.MatchEventType.OWN_GOAL -> "⚽ (OG)"
-                                        com.polyscores.kenya.data.model.MatchEventType.YELLOW_CARD -> "🟨"
-                                        com.polyscores.kenya.data.model.MatchEventType.RED_CARD -> "🟥"
+                                        MatchEventType.GOAL -> "⚽"
+                                        MatchEventType.PENALTY_GOAL -> "⚽ (P)"
+                                        MatchEventType.OWN_GOAL -> "⚽ (OG)"
+                                        MatchEventType.YELLOW_CARD -> "🟨"
+                                        MatchEventType.RED_CARD -> "🟥"
                                         else -> ""
                                     }
                                     Text(
@@ -185,11 +220,11 @@ fun MatchDetailsScreen(
                             Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                                 importantEvents.filter { it.teamId == match.awayTeamId }.forEach { event ->
                                     val icon = when (event.eventType) {
-                                        com.polyscores.kenya.data.model.MatchEventType.GOAL -> "⚽"
-                                        com.polyscores.kenya.data.model.MatchEventType.PENALTY_GOAL -> "⚽ (P)"
-                                        com.polyscores.kenya.data.model.MatchEventType.OWN_GOAL -> "⚽ (OG)"
-                                        com.polyscores.kenya.data.model.MatchEventType.YELLOW_CARD -> "🟨"
-                                        com.polyscores.kenya.data.model.MatchEventType.RED_CARD -> "🟥"
+                                        MatchEventType.GOAL -> "⚽"
+                                        MatchEventType.PENALTY_GOAL -> "⚽ (P)"
+                                        MatchEventType.OWN_GOAL -> "⚽ (OG)"
+                                        MatchEventType.YELLOW_CARD -> "🟨"
+                                        MatchEventType.RED_CARD -> "🟥"
                                         else -> ""
                                     }
                                     Text(
@@ -220,8 +255,8 @@ fun MatchDetailsScreen(
 
             // Tab Content
             when (selectedTab) {
-                0 -> MatchTimeline(events = events, match = match)
-                1 -> MatchLineups(match = match, homePlayers = homePlayers, awayPlayers = awayPlayers, homeTeam = homeTeam, awayTeam = awayTeam)
+                0 -> MatchTimeline(events = events, match = match, onPlayerClick = onPlayerClick)
+                1 -> MatchLineups(match = match, events = events, homePlayers = homePlayers, awayPlayers = awayPlayers, homeTeam = homeTeam, awayTeam = awayTeam, onPlayerClick = onPlayerClick)
                 2 -> com.polyscores.kenya.presentation.ui.components.MatchStatsTab(match = match)
             }
         }
@@ -229,7 +264,7 @@ fun MatchDetailsScreen(
 }
 
 @Composable
-fun MatchTimeline(events: List<MatchEvent>, match: Match) {
+fun MatchTimeline(events: List<MatchEvent>, match: Match, onPlayerClick: (String) -> Unit = {}) {
     if (events.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No events recorded yet.", style = MaterialTheme.typography.bodyLarge)
@@ -252,20 +287,26 @@ fun MatchTimeline(events: List<MatchEvent>, match: Match) {
                     ) {
                         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             val eventText = when (event.eventType) {
-                                com.polyscores.kenya.data.model.MatchEventType.GOAL -> "⚽"
-                                com.polyscores.kenya.data.model.MatchEventType.PENALTY_GOAL -> "⚽ (P)"
-                                com.polyscores.kenya.data.model.MatchEventType.OWN_GOAL -> "⚽ (OG)"
-                                com.polyscores.kenya.data.model.MatchEventType.YELLOW_CARD -> "🟨"
-                                com.polyscores.kenya.data.model.MatchEventType.RED_CARD -> "🟥"
+                                MatchEventType.GOAL -> "⚽"
+                                MatchEventType.PENALTY_GOAL -> "⚽ (P)"
+                                MatchEventType.OWN_GOAL -> "⚽ (OG)"
+                                MatchEventType.YELLOW_CARD -> "🟨"
+                                MatchEventType.RED_CARD -> "🟥"
                                 else -> "(${event.eventType.name})"
                             }
 
                             if (isHomeEvent) {
                                 Text("${event.minute}'", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("${event.playerName} $eventText")
+                                Text(
+                                    text = "${event.playerName} $eventText",
+                                    modifier = Modifier.clickable { onPlayerClick(event.playerId) }
+                                )
                             } else {
-                                Text("$eventText ${event.playerName}")
+                                Text(
+                                    text = "$eventText ${event.playerName}",
+                                    modifier = Modifier.clickable { onPlayerClick(event.playerId) }
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("${event.minute}'", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                             }
@@ -280,10 +321,12 @@ fun MatchTimeline(events: List<MatchEvent>, match: Match) {
 @Composable
 fun MatchLineups(
     match: Match, 
+    events: List<MatchEvent>,
     homePlayers: List<Player>, 
     awayPlayers: List<Player>,
     homeTeam: Team?,
-    awayTeam: Team?
+    awayTeam: Team?,
+    onPlayerClick: (String) -> Unit = {}
 ) {
     var showHome by remember { mutableStateOf(true) }
 
@@ -296,6 +339,21 @@ fun MatchLineups(
 
     val startingPlayers = currentStartingIds.mapNotNull { id -> currentPlayers.find { it.id == id } }
     val benchPlayers = currentBenchIds.mapNotNull { id -> currentPlayers.find { it.id == id } }
+
+    // Identify sent off players who have a RED_CARD event for the current team and are no longer in lineup
+    val teamId = if (showHome) match.homeTeamId else match.awayTeamId
+    val redCardedPlayerIds = events
+        .filter { it.teamId == teamId && it.eventType == MatchEventType.RED_CARD }
+        .map { it.playerId }
+        .distinct()
+    
+    val sentOffPlayers = currentPlayers.filter { redCardedPlayerIds.contains(it.id) }
+
+    android.util.Log.d("LINEUP_DEBUG", "showHome: $showHome")
+    android.util.Log.d("LINEUP_DEBUG", "currentStartingIds: $currentStartingIds")
+    android.util.Log.d("LINEUP_DEBUG", "currentPlayers count: ${currentPlayers.size}")
+    android.util.Log.d("LINEUP_DEBUG", "currentPlayers IDs: ${currentPlayers.map { it.id }}")
+    android.util.Log.d("LINEUP_DEBUG", "mapped startingPlayers count: ${startingPlayers.size}")
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         // Toggle Switch
@@ -337,8 +395,10 @@ fun MatchLineups(
                 if (startingPlayers.isNotEmpty()) {
                     com.polyscores.kenya.presentation.ui.components.VisualPitchLineup(
                         players = startingPlayers,
-                        formation = currentTeam?.formation ?: "4-3-3",
+                        formation = if (showHome) match.homeFormation else match.awayFormation,
+                        events = events,
                         primaryColor = teamColor,
+                        onPlayerClick = onPlayerClick,
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
@@ -355,6 +415,13 @@ fun MatchLineups(
             }
             
             items(benchPlayers) { player ->
+                val playerEvents = events.filter { it.playerId == player.id }
+                val hasYellowCard = playerEvents.any { it.eventType == MatchEventType.YELLOW_CARD }
+                val hasRedCard = playerEvents.any { it.eventType == MatchEventType.RED_CARD }
+                val goalsScored = playerEvents.count { it.eventType == MatchEventType.GOAL || it.eventType == MatchEventType.PENALTY_GOAL }
+                val isSubbedIn = playerEvents.any { it.eventType == MatchEventType.SUBSTITUTION_IN }
+                val isSubbedOut = playerEvents.any { it.eventType == MatchEventType.SUBSTITUTION_OUT }
+
                 ListItem(
                     headlineContent = { Text(player.name) },
                     supportingContent = { Text(player.position.name) },
@@ -372,9 +439,90 @@ fun MatchLineups(
                                 )
                             }
                         }
-                    }
+                    },
+                    trailingContent = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (hasRedCard) Text("🟥")
+                            else if (hasYellowCard) Text("🟨")
+                            
+                            if (goalsScored > 0) {
+                                Text(if (goalsScored > 1) "⚽x$goalsScored" else "⚽")
+                            }
+                            
+                            if (isSubbedOut && !hasRedCard) Text("⬇️")
+                            if (isSubbedIn) Text("⬆️")
+                        }
+                    },
+                    modifier = Modifier.clickable { onPlayerClick(player.id) }
                 )
                 HorizontalDivider()
+            }
+            
+            if (sentOffPlayers.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Sent Off",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    HorizontalDivider()
+                }
+                
+                items(sentOffPlayers) { player ->
+                    val playerEvents = events.filter { it.playerId == player.id }
+                    val goalsScored = playerEvents.count { it.eventType == MatchEventType.GOAL || it.eventType == MatchEventType.PENALTY_GOAL }
+                    val isSubbedIn = playerEvents.any { it.eventType == MatchEventType.SUBSTITUTION_IN }
+
+                    ListItem(
+                        headlineContent = { 
+                            Text(
+                                text = player.name,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            ) 
+                        },
+                        supportingContent = { 
+                            Text(
+                                text = player.position.name,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            ) 
+                        },
+                        leadingContent = {
+                            Surface(
+                                modifier = Modifier.size(32.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = if (player.jerseyNumber > 0) player.jerseyNumber.toString() else "-",
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        },
+                        trailingContent = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("🟥")
+                                if (goalsScored > 0) {
+                                    Text(if (goalsScored > 1) "⚽x$goalsScored" else "⚽")
+                                }
+                                if (isSubbedIn) Text("⬆️")
+                            }
+                        },
+                        modifier = Modifier.clickable { onPlayerClick(player.id) }
+                    )
+                    HorizontalDivider()
+                }
             }
             
             item {

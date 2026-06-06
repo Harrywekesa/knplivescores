@@ -9,14 +9,15 @@ class FCMNotificationService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        message.notification?.let { notification ->
-            val title = notification.title ?: "PolyScores"
-            val body = notification.body ?: ""
-            val type = message.data["type"] ?: "general"
+        // Parse title and body from notification payload if present, fallback to data payload
+        val title = message.notification?.title ?: message.data["title"] ?: "PolyScores"
+        val body = message.notification?.body ?: message.data["body"] ?: ""
+        val type = message.data["type"] ?: "general"
 
-            Log.d("FCM", "Notification received: $title - $body")
+        Log.d("FCM", "Notification received: $title - $body (Type: $type)")
 
-            // Handle the notification based on type
+        // Only trigger handling if title or body is present
+        if (title.isNotBlank() || body.isNotBlank()) {
             when (type) {
                 "goal" -> handleGoalNotification(title, body, message.data)
                 "match_start" -> handleMatchStartNotification(title, body, message.data)

@@ -66,6 +66,18 @@ class TeamsRepository {
     }
 
     /**
+     * Get all teams once
+     */
+    suspend fun getAllTeamsOnce(): List<Team> {
+        return try {
+            val snapshot = teamsCollection.get().await()
+            snapshot.documents.mapNotNull { it.toObject(Team::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
      * Get a single team by ID
      */
     suspend fun getTeamById(teamId: String): Team? {
